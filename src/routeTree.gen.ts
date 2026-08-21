@@ -20,6 +20,7 @@ import { Route as ApiSharesRouteImport } from './routes/api/shares'
 import { Route as ApiSearchRouteImport } from './routes/api/search'
 import { Route as ApiOpenrouterTestRouteImport } from './routes/api/openrouter-test'
 import { Route as ApiImagesRouteImport } from './routes/api/images'
+import { Route as ApiImagePersistRouteImport } from './routes/api/image-persist'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthenticatedVoiceRouteImport } from './routes/_authenticated/voice'
@@ -138,6 +139,11 @@ const ApiOpenrouterTestRoute = ApiOpenrouterTestRouteImport.update({
 const ApiImagesRoute = ApiImagesRouteImport.update({
   id: '/api/images',
   path: '/api/images',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiImagePersistRoute = ApiImagePersistRouteImport.update({
+  id: '/api/image-persist',
+  path: '/api/image-persist',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiHealthRoute = ApiHealthRouteImport.update({
@@ -504,6 +510,7 @@ export interface FileRoutesByFullPath {
   '/voice': typeof AuthenticatedVoiceRoute
   '/api/chat': typeof ApiChatRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/image-persist': typeof ApiImagePersistRoute
   '/api/images': typeof ApiImagesRoute
   '/api/openrouter-test': typeof ApiOpenrouterTestRoute
   '/api/search': typeof ApiSearchRoute
@@ -581,6 +588,7 @@ export interface FileRoutesByTo {
   '/voice': typeof AuthenticatedVoiceRoute
   '/api/chat': typeof ApiChatRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/image-persist': typeof ApiImagePersistRoute
   '/api/images': typeof ApiImagesRoute
   '/api/openrouter-test': typeof ApiOpenrouterTestRoute
   '/api/search': typeof ApiSearchRoute
@@ -660,6 +668,7 @@ export interface FileRoutesById {
   '/_authenticated/voice': typeof AuthenticatedVoiceRoute
   '/api/chat': typeof ApiChatRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/image-persist': typeof ApiImagePersistRoute
   '/api/images': typeof ApiImagesRoute
   '/api/openrouter-test': typeof ApiOpenrouterTestRoute
   '/api/search': typeof ApiSearchRoute
@@ -739,6 +748,7 @@ export interface FileRouteTypes {
     | '/voice'
     | '/api/chat'
     | '/api/health'
+    | '/api/image-persist'
     | '/api/images'
     | '/api/openrouter-test'
     | '/api/search'
@@ -816,6 +826,7 @@ export interface FileRouteTypes {
     | '/voice'
     | '/api/chat'
     | '/api/health'
+    | '/api/image-persist'
     | '/api/images'
     | '/api/openrouter-test'
     | '/api/search'
@@ -894,6 +905,7 @@ export interface FileRouteTypes {
     | '/_authenticated/voice'
     | '/api/chat'
     | '/api/health'
+    | '/api/image-persist'
     | '/api/images'
     | '/api/openrouter-test'
     | '/api/search'
@@ -955,6 +967,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ApiChatRoute: typeof ApiChatRoute
   ApiHealthRoute: typeof ApiHealthRoute
+  ApiImagePersistRoute: typeof ApiImagePersistRoute
   ApiImagesRoute: typeof ApiImagesRoute
   ApiOpenrouterTestRoute: typeof ApiOpenrouterTestRoute
   ApiSearchRoute: typeof ApiSearchRoute
@@ -1072,6 +1085,13 @@ declare module '@tanstack/react-router' {
       path: '/api/images'
       fullPath: '/api/images'
       preLoaderRoute: typeof ApiImagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/image-persist': {
+      id: '/api/image-persist'
+      path: '/api/image-persist'
+      fullPath: '/api/image-persist'
+      preLoaderRoute: typeof ApiImagePersistRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/health': {
@@ -1631,6 +1651,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ApiChatRoute: ApiChatRoute,
   ApiHealthRoute: ApiHealthRoute,
+  ApiImagePersistRoute: ApiImagePersistRoute,
   ApiImagesRoute: ApiImagesRoute,
   ApiOpenrouterTestRoute: ApiOpenrouterTestRoute,
   ApiSearchRoute: ApiSearchRoute,

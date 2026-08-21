@@ -35,27 +35,55 @@ export interface ImageModelCapabilities {
   supportsVariation: boolean;
   supportsTransparentBackground: boolean;
   supportsStreaming: boolean;
+  /**
+   * True only when the provider exposes a real negative-prompt parameter.
+   * No OpenRouter image model does today, so the gateway folds a negative
+   * prompt into the prompt text instead of silently dropping it.
+   */
   supportsNegativePrompt: boolean;
   supportsAspectRatio: boolean;
   supportsSeed: boolean;
+  /** True when the provider accepts a `quality` parameter. */
+  supportsQuality: boolean;
+  /** True when the provider accepts a `resolution` tier parameter. */
+  supportsResolution: boolean;
   supportsUpscaling: boolean;
+  /** Highest `n` the provider accepts in a single request. */
+  maxImagesPerRequest: number;
+  /** Highest number of images this app will produce for one user request. */
   maxImages: number;
 }
 
+// Baseline shared by every registered image model. Each entry below overrides
+// the parts that its provider actually supports; `validateImageModelsAtStartup`
+// re-verifies all of it against the live OpenRouter catalog and reports drift.
 const STANDARD_IMAGE_CAPABILITIES: ImageModelCapabilities = {
   supportsGeneration: true,
-  supportsEditing: false,
+  supportsEditing: true,
   supportsVariation: true,
   supportsTransparentBackground: false,
   supportsStreaming: false,
-  supportsNegativePrompt: true,
+  supportsNegativePrompt: false,
   supportsAspectRatio: true,
-  supportsSeed: true,
+  supportsSeed: false,
+  supportsQuality: false,
+  supportsResolution: true,
   supportsUpscaling: false,
-  maxImages: 8,
+  maxImagesPerRequest: 1,
+  maxImages: 4,
 };
 
-/** The single registry for image models. OpenRouter owns all four provider APIs. */
+/**
+ * The single registry for image models. OpenRouter fronts all four providers.
+ *
+ * Order matters: it is the automatic fallback chain
+ * (Grok → FLUX → Gemini → Qwen). Capability flags mirror the live
+ * `/api/v1/images/models` schema — verified at startup, never guessed:
+ *   grok-imagine-image-2.0        resolution 1K|2K, quality low|medium, n≤1, no seed
+ *   flux.2-max                    aspect_ratio only (no resolution), seed, n≤1
+ *   gemini-3.1-flash-lite-image   resolution 1K only, n≤1, no seed, no quality
+ *   qwen-image-3-pro              resolution 1K|2K, seed, n≤6
+ */
 export const IMAGE_MODELS: readonly ImageModelDefinition[] = [
   {
     id: "x-ai/grok-imagine-image-2.0",
@@ -67,7 +95,29 @@ export const IMAGE_MODELS: readonly ImageModelDefinition[] = [
     maxWidth: 2048,
     maxHeight: 2048,
     estimatedPrice: 0.04,
-    capabilities: STANDARD_IMAGE_CAPABILITIES,
+    capabilities: {
+      ...STANDARD_IMAGE_CAPABILITIES,
+      // xAI only accepts quality "low" | "medium" — "high" is rejected with 400.
+      supportsQuality: true,
+    },
+  },
+  {
+    id: "black-forest-labs/flux.2-max",
+    provider: "openrouter",
+    supports: ["image"],
+    label: "FLUX 2 Max",
+    description: "High-fidelity contextual and photorealistic imagery.",
+    badges: ["High Quality", "Photorealistic"],
+    maxWidth: 2048,
+    maxHeight: 2048,
+    estimatedPrice: 0.08,
+    capabilities: {
+      ...STANDARD_IMAGE_CAPABILITIES,
+      supportsTransparentBackground: true,
+      supportsSeed: true,
+      // FLUX sizes purely by aspect ratio; it has no resolution tier parameter.
+      supportsResolution: false,
+    },
   },
   {
     id: "google/gemini-3.1-flash-lite-image",
@@ -76,26 +126,11 @@ export const IMAGE_MODELS: readonly ImageModelDefinition[] = [
     label: "Nano Banana Lite",
     description: "Google's quick, efficient image model.",
     badges: ["Fast", "Reasoning"],
-    maxWidth: 2048,
-    maxHeight: 2048,
+    // Gemini Flash Lite Image only offers the 1K resolution tier.
+    maxWidth: 1024,
+    maxHeight: 1024,
     estimatedPrice: 0.02,
-    capabilities: STANDARD_IMAGE_CAPABILITIES,
-  },
-  {
-    id: "black-forest-labs/flux.2-max",
-    provider: "openrouter",
-    supports: ["image"],
-    label: "FLUX Kontext Max",
-    description: "High-fidelity contextual and photorealistic imagery.",
-    badges: ["High Quality", "Photorealistic"],
-    maxWidth: 2048,
-    maxHeight: 2048,
-    estimatedPrice: 0.08,
-    capabilities: {
-      ...STANDARD_IMAGE_CAPABILITIES,
-      supportsEditing: true,
-      supportsTransparentBackground: true,
-    },
+    capabilities: { ...STANDARD_IMAGE_CAPABILITIES },
   },
   {
     id: "qwen/qwen-image-3-pro",
@@ -107,7 +142,11 @@ export const IMAGE_MODELS: readonly ImageModelDefinition[] = [
     maxWidth: 2048,
     maxHeight: 2048,
     estimatedPrice: 0.05,
-    capabilities: { ...STANDARD_IMAGE_CAPABILITIES, supportsEditing: true },
+    capabilities: {
+      ...STANDARD_IMAGE_CAPABILITIES,
+      supportsSeed: true,
+      maxImagesPerRequest: 6,
+    },
   },
 ] as const;
 

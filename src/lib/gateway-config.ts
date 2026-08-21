@@ -117,7 +117,7 @@ export const IMAGE_CONFIG = {
     502: 30_000,
     503: 60_000,
     504: 30_000,
-  } as Record<number, number>,
+  },
   healthTtlDefaultMs: 30_000,
 } as const;
 
