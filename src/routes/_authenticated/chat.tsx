@@ -36,6 +36,7 @@ import { emitDashboardEvent } from "@/lib/dashboard-service";
 import { generateChatTitle, shouldGenerateTitle } from "@/lib/chat-title";
 import { cancelTitleGeneration, generateConversationTitle } from "@/lib/title-service";
 import { cn } from "@/lib/utils";
+import { parseLordError, formatUserFacingError, type LordError } from "@/lib/lord-error";
 import { useMessageRealtime } from "@/lib/realtime/use-realtime-sync";
 import { createClientTag, markClientTagSent } from "@/lib/realtime/client-tag";
 import {
@@ -402,7 +403,18 @@ function ChatPage() {
         streamingMsgIdRef.current = null;
         streamingConvIdRef.current = null;
         streamingContentRef.current = "";
-        setPersistenceError("The response was interrupted. You can regenerate it.");
+        // Surface the real, request-correlated reason instead of a generic line.
+        // The assistant message carries an error part whose text is a JSON
+        // `LordError` produced by the backend `onError` handler.
+        const errPart = (
+          message?.parts as Array<{ type: string; errorText?: string }> | undefined
+        )?.find((p) => p.type === "error");
+        const lordErr = errPart?.errorText ? parseLordError(errPart.errorText) : null;
+        setPersistenceError(
+          lordErr
+            ? formatUserFacingError(lordErr)
+            : "The response was interrupted. You can regenerate it.",
+        );
         return;
       }
       if (!activeConversationId || isOptimisticId(dbActiveConversationId)) {
@@ -1631,15 +1643,32 @@ function ChatPage() {
       return <EmptyState onPick={(s) => setInput(s)} />;
     }
 
+    const messagesContainErrorPart = safeMessages.some((m) =>
+      m.parts.some((p) => (p as { type: string }).type === "error"),
+    );
+
     return (
       <ul className="flex w-full flex-col gap-4">
         {safeMessages.map((m, idx) => {
           const isLast = idx === safeMessages.length - 1;
           const text = m.parts
-            .filter((p) => p.type === "text")
+            .filter((p) => (p as { type: string }).type === "text")
             .map((p) => (p as { text?: string }).text ?? "")
             .join("");
           const isStreaming = isLast && m.role === "assistant" && busy;
+          // AI-SDK embeds backend failures as `error` parts (text is a JSON
+          // `LordError`). Render them with the real, request-correlated message
+          // instead of silently dropping them (which previously left the user
+          // staring at a broken, empty bubble).
+          const errorParts = m.parts
+            .filter((p) => (p as { type: string }).type === "error")
+            .map((p) => {
+              const partText = (p as { errorText?: string }).errorText ?? "";
+              const lordErr = parseLordError(partText);
+              return lordErr
+                ? formatUserFacingError(lordErr)
+                : partText || "The AI request failed.";
+            });
           return (
             <li
               key={m.id}
@@ -1662,6 +1691,27 @@ function ChatPage() {
                 ) : (
                   <div className="text-sm text-foreground">
                     <RichMessage text={text} streaming={isStreaming} />
+                    {errorParts.length > 0 && (
+                      <div className="mt-2 space-y-1">
+                        {errorParts.map((errText, i) => (
+                          <div
+                            key={i}
+                            className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive"
+                          >
+                            {errText}
+                            <div className="mt-2">
+                              <button
+                                type="button"
+                                onClick={() => regenerateLast()}
+                                className="inline-flex items-center gap-1 rounded-md border border-destructive/50 px-2 py-1 text-destructive hover:bg-destructive/10"
+                              >
+                                Retry
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     {!isStreaming && (
                       <MessageActions
                         text={text}
@@ -1684,11 +1734,35 @@ function ChatPage() {
               <TypingDots />
             </li>
           )}
-        {error && (
-          <li className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive">
-            {error.message || "The AI request failed. Please retry."}
-          </li>
-        )}
+        {error &&
+          !messagesContainErrorPart &&
+          (() => {
+            const lordErr = parseLordError(error.message);
+            const requestId = lordErr?.requestId ?? "";
+            return (
+              <li className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive">
+                <div>
+                  {lordErr
+                    ? formatUserFacingError(lordErr)
+                    : error.message || "The AI request failed. Please retry."}
+                </div>
+                {requestId && (
+                  <div className="mt-1 font-mono text-destructive/80">
+                    Request ID: {requestId.slice(0, 8).toUpperCase()}
+                  </div>
+                )}
+                <div className="mt-2">
+                  <button
+                    type="button"
+                    onClick={() => regenerateLast()}
+                    className="inline-flex items-center gap-1 rounded-md border border-destructive/50 px-2 py-1 text-destructive hover:bg-destructive/10"
+                  >
+                    Retry
+                  </button>
+                </div>
+              </li>
+            );
+          })()}
         {(persistenceError || storedMessagesError) && (
           <li className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive">
             {persistenceError ??

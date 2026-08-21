@@ -40,6 +40,7 @@ import { Route as AuthenticatedDocumentsRouteImport } from './routes/_authentica
 import { Route as AuthenticatedChatRouteImport } from './routes/_authenticated/chat'
 import { Route as AuthenticatedCalendarRouteImport } from './routes/_authenticated/calendar'
 import { Route as AuthenticatedBoardsRouteImport } from './routes/_authenticated/boards'
+import { Route as AuthenticatedCommandCenterRouteRouteImport } from './routes/_authenticated/command-center/route'
 import { Route as ApiStudyPlansIndexRouteImport } from './routes/api/study-plans/index'
 import { Route as ApiProjectsIndexRouteImport } from './routes/api/projects/index'
 import { Route as ApiKnowledgeIndexRouteImport } from './routes/api/knowledge/index'
@@ -49,12 +50,19 @@ import { Route as AuthenticatedProjectsIndexRouteImport } from './routes/_authen
 import { Route as AuthenticatedObservabilityIndexRouteImport } from './routes/_authenticated/observability/index'
 import { Route as AuthenticatedKnowledge2IndexRouteImport } from './routes/_authenticated/knowledge2/index'
 import { Route as AuthenticatedDashboardsIndexRouteImport } from './routes/_authenticated/dashboards/index'
+import { Route as AuthenticatedCommandCenterIndexRouteImport } from './routes/_authenticated/command-center/index'
 import { Route as AuthenticatedCanvasIndexRouteImport } from './routes/_authenticated/canvas/index'
 import { Route as ApiStudyPlansIdRouteImport } from './routes/api/study-plans/$id'
 import { Route as ApiSharesTokenRouteImport } from './routes/api/shares/$token'
 import { Route as ApiSharedTokenRouteImport } from './routes/api/shared/$token'
 import { Route as ApiProjectsIdRouteImport } from './routes/api/projects/$id'
 import { Route as ApiObservabilityHealthRouteImport } from './routes/api/observability/health'
+import { Route as ApiLordToolRouteImport } from './routes/api/lord/tool'
+import { Route as ApiLordStatusRouteImport } from './routes/api/lord/status'
+import { Route as ApiLordFilesRouteImport } from './routes/api/lord/files'
+import { Route as ApiLordFileRouteImport } from './routes/api/lord/file'
+import { Route as ApiLordAutomationRouteImport } from './routes/api/lord/automation'
+import { Route as ApiLordActivityRouteImport } from './routes/api/lord/activity'
 import { Route as ApiLearningWhiteboardRouteImport } from './routes/api/learning/whiteboard'
 import { Route as ApiLearningVoiceRouteImport } from './routes/api/learning/voice'
 import { Route as ApiLearningSessionRouteImport } from './routes/api/learning/session'
@@ -81,7 +89,26 @@ import { Route as ApiCanvasStreamRouteImport } from './routes/api/canvas/stream'
 import { Route as ApiBrainContextRouteImport } from './routes/api/brain/context'
 import { Route as ApiAdminGatewayRouteImport } from './routes/api/admin/gateway'
 import { Route as AuthenticatedProjectsIdRouteImport } from './routes/_authenticated/projects/$id'
+import { Route as AuthenticatedCommandCenterVisionRouteImport } from './routes/_authenticated/command-center/vision'
+import { Route as AuthenticatedCommandCenterSmartHomeRouteImport } from './routes/_authenticated/command-center/smart-home'
+import { Route as AuthenticatedCommandCenterSettingsRouteImport } from './routes/_authenticated/command-center/settings'
+import { Route as AuthenticatedCommandCenterPcRouteImport } from './routes/_authenticated/command-center/pc'
+import { Route as AuthenticatedCommandCenterOfficeRouteImport } from './routes/_authenticated/command-center/office'
+import { Route as AuthenticatedCommandCenterMobileRouteImport } from './routes/_authenticated/command-center/mobile'
+import { Route as AuthenticatedCommandCenterFilesRouteImport } from './routes/_authenticated/command-center/files'
+import { Route as AuthenticatedCommandCenterBrowserRouteImport } from './routes/_authenticated/command-center/browser'
+import { Route as AuthenticatedCommandCenterAutomationsRouteImport } from './routes/_authenticated/command-center/automations'
 import { Route as AuthenticatedCanvasIdRouteImport } from './routes/_authenticated/canvas/$id'
+import { Route as ApiLordVisionWebcamRouteImport } from './routes/api/lord/vision/webcam'
+import { Route as ApiLordVisionScreenRouteImport } from './routes/api/lord/vision/screen'
+import { Route as ApiLordOfficePowerpointRouteImport } from './routes/api/lord/office/powerpoint'
+import { Route as ApiLordOfficeExcelRouteImport } from './routes/api/lord/office/excel'
+import { Route as ApiLordMobileStatusRouteImport } from './routes/api/lord/mobile/status'
+import { Route as ApiLordMobilePairRouteImport } from './routes/api/lord/mobile/pair'
+import { Route as ApiLordIotDevicesRouteImport } from './routes/api/lord/iot/devices'
+import { Route as ApiLordBrowserActionRouteImport } from './routes/api/lord/browser/action'
+import { Route as ApiLordAgentStopRouteImport } from './routes/api/lord/agent/stop'
+import { Route as ApiLordAgentExecuteRouteImport } from './routes/api/lord/agent/execute'
 import { Route as ApiLearningSourcesIngestRouteImport } from './routes/api/learning/sources/ingest'
 import { Route as ApiStudyPlansIdTasksIndexRouteImport } from './routes/api/study-plans/$id/tasks/index'
 import { Route as ApiResearchIdSourcesIndexRouteImport } from './routes/api/research/$id/sources/index'
@@ -89,6 +116,7 @@ import { Route as ApiStudyPlansIdTasksTaskIdRouteImport } from './routes/api/stu
 import { Route as ApiStudyPlansIdAiSuggestRouteImport } from './routes/api/study-plans/$id/ai/suggest'
 import { Route as ApiStudyPlansIdAiOptimizeRouteImport } from './routes/api/study-plans/$id/ai/optimize'
 import { Route as ApiStudyPlansIdAiGenerateRouteImport } from './routes/api/study-plans/$id/ai/generate'
+import { Route as ApiLordIotDeviceActionRouteImport } from './routes/api/lord/iot/device/action'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -245,6 +273,12 @@ const AuthenticatedBoardsRoute = AuthenticatedBoardsRouteImport.update({
   path: '/boards',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedCommandCenterRouteRoute =
+  AuthenticatedCommandCenterRouteRouteImport.update({
+    id: '/command-center',
+    path: '/command-center',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const ApiStudyPlansIndexRoute = ApiStudyPlansIndexRouteImport.update({
   id: '/api/study-plans/',
   path: '/api/study-plans/',
@@ -294,6 +328,12 @@ const AuthenticatedDashboardsIndexRoute =
     path: '/dashboards/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedCommandCenterIndexRoute =
+  AuthenticatedCommandCenterIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedCommandCenterRouteRoute,
+  } as any)
 const AuthenticatedCanvasIndexRoute =
   AuthenticatedCanvasIndexRouteImport.update({
     id: '/canvas/',
@@ -323,6 +363,36 @@ const ApiProjectsIdRoute = ApiProjectsIdRouteImport.update({
 const ApiObservabilityHealthRoute = ApiObservabilityHealthRouteImport.update({
   id: '/api/observability/health',
   path: '/api/observability/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLordToolRoute = ApiLordToolRouteImport.update({
+  id: '/api/lord/tool',
+  path: '/api/lord/tool',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLordStatusRoute = ApiLordStatusRouteImport.update({
+  id: '/api/lord/status',
+  path: '/api/lord/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLordFilesRoute = ApiLordFilesRouteImport.update({
+  id: '/api/lord/files',
+  path: '/api/lord/files',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLordFileRoute = ApiLordFileRouteImport.update({
+  id: '/api/lord/file',
+  path: '/api/lord/file',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLordAutomationRoute = ApiLordAutomationRouteImport.update({
+  id: '/api/lord/automation',
+  path: '/api/lord/automation',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLordActivityRoute = ApiLordActivityRouteImport.update({
+  id: '/api/lord/activity',
+  path: '/api/lord/activity',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiLearningWhiteboardRoute = ApiLearningWhiteboardRouteImport.update({
@@ -455,10 +525,114 @@ const AuthenticatedProjectsIdRoute = AuthenticatedProjectsIdRouteImport.update({
   path: '/projects/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedCommandCenterVisionRoute =
+  AuthenticatedCommandCenterVisionRouteImport.update({
+    id: '/vision',
+    path: '/vision',
+    getParentRoute: () => AuthenticatedCommandCenterRouteRoute,
+  } as any)
+const AuthenticatedCommandCenterSmartHomeRoute =
+  AuthenticatedCommandCenterSmartHomeRouteImport.update({
+    id: '/smart-home',
+    path: '/smart-home',
+    getParentRoute: () => AuthenticatedCommandCenterRouteRoute,
+  } as any)
+const AuthenticatedCommandCenterSettingsRoute =
+  AuthenticatedCommandCenterSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthenticatedCommandCenterRouteRoute,
+  } as any)
+const AuthenticatedCommandCenterPcRoute =
+  AuthenticatedCommandCenterPcRouteImport.update({
+    id: '/pc',
+    path: '/pc',
+    getParentRoute: () => AuthenticatedCommandCenterRouteRoute,
+  } as any)
+const AuthenticatedCommandCenterOfficeRoute =
+  AuthenticatedCommandCenterOfficeRouteImport.update({
+    id: '/office',
+    path: '/office',
+    getParentRoute: () => AuthenticatedCommandCenterRouteRoute,
+  } as any)
+const AuthenticatedCommandCenterMobileRoute =
+  AuthenticatedCommandCenterMobileRouteImport.update({
+    id: '/mobile',
+    path: '/mobile',
+    getParentRoute: () => AuthenticatedCommandCenterRouteRoute,
+  } as any)
+const AuthenticatedCommandCenterFilesRoute =
+  AuthenticatedCommandCenterFilesRouteImport.update({
+    id: '/files',
+    path: '/files',
+    getParentRoute: () => AuthenticatedCommandCenterRouteRoute,
+  } as any)
+const AuthenticatedCommandCenterBrowserRoute =
+  AuthenticatedCommandCenterBrowserRouteImport.update({
+    id: '/browser',
+    path: '/browser',
+    getParentRoute: () => AuthenticatedCommandCenterRouteRoute,
+  } as any)
+const AuthenticatedCommandCenterAutomationsRoute =
+  AuthenticatedCommandCenterAutomationsRouteImport.update({
+    id: '/automations',
+    path: '/automations',
+    getParentRoute: () => AuthenticatedCommandCenterRouteRoute,
+  } as any)
 const AuthenticatedCanvasIdRoute = AuthenticatedCanvasIdRouteImport.update({
   id: '/canvas/$id',
   path: '/canvas/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const ApiLordVisionWebcamRoute = ApiLordVisionWebcamRouteImport.update({
+  id: '/api/lord/vision/webcam',
+  path: '/api/lord/vision/webcam',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLordVisionScreenRoute = ApiLordVisionScreenRouteImport.update({
+  id: '/api/lord/vision/screen',
+  path: '/api/lord/vision/screen',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLordOfficePowerpointRoute = ApiLordOfficePowerpointRouteImport.update({
+  id: '/api/lord/office/powerpoint',
+  path: '/api/lord/office/powerpoint',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLordOfficeExcelRoute = ApiLordOfficeExcelRouteImport.update({
+  id: '/api/lord/office/excel',
+  path: '/api/lord/office/excel',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLordMobileStatusRoute = ApiLordMobileStatusRouteImport.update({
+  id: '/api/lord/mobile/status',
+  path: '/api/lord/mobile/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLordMobilePairRoute = ApiLordMobilePairRouteImport.update({
+  id: '/api/lord/mobile/pair',
+  path: '/api/lord/mobile/pair',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLordIotDevicesRoute = ApiLordIotDevicesRouteImport.update({
+  id: '/api/lord/iot/devices',
+  path: '/api/lord/iot/devices',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLordBrowserActionRoute = ApiLordBrowserActionRouteImport.update({
+  id: '/api/lord/browser/action',
+  path: '/api/lord/browser/action',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLordAgentStopRoute = ApiLordAgentStopRouteImport.update({
+  id: '/api/lord/agent/stop',
+  path: '/api/lord/agent/stop',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLordAgentExecuteRoute = ApiLordAgentExecuteRouteImport.update({
+  id: '/api/lord/agent/execute',
+  path: '/api/lord/agent/execute',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiLearningSourcesIngestRoute =
   ApiLearningSourcesIngestRouteImport.update({
@@ -502,12 +676,18 @@ const ApiStudyPlansIdAiGenerateRoute =
     path: '/ai/generate',
     getParentRoute: () => ApiStudyPlansIdRoute,
   } as any)
+const ApiLordIotDeviceActionRoute = ApiLordIotDeviceActionRouteImport.update({
+  id: '/api/lord/iot/device/action',
+  path: '/api/lord/iot/device/action',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/command-center': typeof AuthenticatedCommandCenterRouteRouteWithChildren
   '/boards': typeof AuthenticatedBoardsRoute
   '/calendar': typeof AuthenticatedCalendarRoute
   '/chat': typeof AuthenticatedChatRoute
@@ -535,6 +715,15 @@ export interface FileRoutesByFullPath {
   '/api/title': typeof ApiTitleRoute
   '/share/$token': typeof ShareTokenRoute
   '/canvas/$id': typeof AuthenticatedCanvasIdRoute
+  '/command-center/automations': typeof AuthenticatedCommandCenterAutomationsRoute
+  '/command-center/browser': typeof AuthenticatedCommandCenterBrowserRoute
+  '/command-center/files': typeof AuthenticatedCommandCenterFilesRoute
+  '/command-center/mobile': typeof AuthenticatedCommandCenterMobileRoute
+  '/command-center/office': typeof AuthenticatedCommandCenterOfficeRoute
+  '/command-center/pc': typeof AuthenticatedCommandCenterPcRoute
+  '/command-center/settings': typeof AuthenticatedCommandCenterSettingsRoute
+  '/command-center/smart-home': typeof AuthenticatedCommandCenterSmartHomeRoute
+  '/command-center/vision': typeof AuthenticatedCommandCenterVisionRoute
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/api/admin/gateway': typeof ApiAdminGatewayRoute
   '/api/brain/context': typeof ApiBrainContextRoute
@@ -561,12 +750,19 @@ export interface FileRoutesByFullPath {
   '/api/learning/session': typeof ApiLearningSessionRoute
   '/api/learning/voice': typeof ApiLearningVoiceRoute
   '/api/learning/whiteboard': typeof ApiLearningWhiteboardRoute
+  '/api/lord/activity': typeof ApiLordActivityRoute
+  '/api/lord/automation': typeof ApiLordAutomationRoute
+  '/api/lord/file': typeof ApiLordFileRoute
+  '/api/lord/files': typeof ApiLordFilesRoute
+  '/api/lord/status': typeof ApiLordStatusRoute
+  '/api/lord/tool': typeof ApiLordToolRoute
   '/api/observability/health': typeof ApiObservabilityHealthRoute
   '/api/projects/$id': typeof ApiProjectsIdRoute
   '/api/shared/$token': typeof ApiSharedTokenRoute
   '/api/shares/$token': typeof ApiSharesTokenRoute
   '/api/study-plans/$id': typeof ApiStudyPlansIdRouteWithChildren
   '/canvas/': typeof AuthenticatedCanvasIndexRoute
+  '/command-center/': typeof AuthenticatedCommandCenterIndexRoute
   '/dashboards/': typeof AuthenticatedDashboardsIndexRoute
   '/knowledge2/': typeof AuthenticatedKnowledge2IndexRoute
   '/observability/': typeof AuthenticatedObservabilityIndexRoute
@@ -577,6 +773,17 @@ export interface FileRoutesByFullPath {
   '/api/projects/': typeof ApiProjectsIndexRoute
   '/api/study-plans/': typeof ApiStudyPlansIndexRoute
   '/api/learning/sources/ingest': typeof ApiLearningSourcesIngestRoute
+  '/api/lord/agent/execute': typeof ApiLordAgentExecuteRoute
+  '/api/lord/agent/stop': typeof ApiLordAgentStopRoute
+  '/api/lord/browser/action': typeof ApiLordBrowserActionRoute
+  '/api/lord/iot/devices': typeof ApiLordIotDevicesRoute
+  '/api/lord/mobile/pair': typeof ApiLordMobilePairRoute
+  '/api/lord/mobile/status': typeof ApiLordMobileStatusRoute
+  '/api/lord/office/excel': typeof ApiLordOfficeExcelRoute
+  '/api/lord/office/powerpoint': typeof ApiLordOfficePowerpointRoute
+  '/api/lord/vision/screen': typeof ApiLordVisionScreenRoute
+  '/api/lord/vision/webcam': typeof ApiLordVisionWebcamRoute
+  '/api/lord/iot/device/action': typeof ApiLordIotDeviceActionRoute
   '/api/study-plans/$id/ai/generate': typeof ApiStudyPlansIdAiGenerateRoute
   '/api/study-plans/$id/ai/optimize': typeof ApiStudyPlansIdAiOptimizeRoute
   '/api/study-plans/$id/ai/suggest': typeof ApiStudyPlansIdAiSuggestRoute
@@ -616,6 +823,15 @@ export interface FileRoutesByTo {
   '/api/title': typeof ApiTitleRoute
   '/share/$token': typeof ShareTokenRoute
   '/canvas/$id': typeof AuthenticatedCanvasIdRoute
+  '/command-center/automations': typeof AuthenticatedCommandCenterAutomationsRoute
+  '/command-center/browser': typeof AuthenticatedCommandCenterBrowserRoute
+  '/command-center/files': typeof AuthenticatedCommandCenterFilesRoute
+  '/command-center/mobile': typeof AuthenticatedCommandCenterMobileRoute
+  '/command-center/office': typeof AuthenticatedCommandCenterOfficeRoute
+  '/command-center/pc': typeof AuthenticatedCommandCenterPcRoute
+  '/command-center/settings': typeof AuthenticatedCommandCenterSettingsRoute
+  '/command-center/smart-home': typeof AuthenticatedCommandCenterSmartHomeRoute
+  '/command-center/vision': typeof AuthenticatedCommandCenterVisionRoute
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/api/admin/gateway': typeof ApiAdminGatewayRoute
   '/api/brain/context': typeof ApiBrainContextRoute
@@ -642,12 +858,19 @@ export interface FileRoutesByTo {
   '/api/learning/session': typeof ApiLearningSessionRoute
   '/api/learning/voice': typeof ApiLearningVoiceRoute
   '/api/learning/whiteboard': typeof ApiLearningWhiteboardRoute
+  '/api/lord/activity': typeof ApiLordActivityRoute
+  '/api/lord/automation': typeof ApiLordAutomationRoute
+  '/api/lord/file': typeof ApiLordFileRoute
+  '/api/lord/files': typeof ApiLordFilesRoute
+  '/api/lord/status': typeof ApiLordStatusRoute
+  '/api/lord/tool': typeof ApiLordToolRoute
   '/api/observability/health': typeof ApiObservabilityHealthRoute
   '/api/projects/$id': typeof ApiProjectsIdRoute
   '/api/shared/$token': typeof ApiSharedTokenRoute
   '/api/shares/$token': typeof ApiSharesTokenRoute
   '/api/study-plans/$id': typeof ApiStudyPlansIdRouteWithChildren
   '/canvas': typeof AuthenticatedCanvasIndexRoute
+  '/command-center': typeof AuthenticatedCommandCenterIndexRoute
   '/dashboards': typeof AuthenticatedDashboardsIndexRoute
   '/knowledge2': typeof AuthenticatedKnowledge2IndexRoute
   '/observability': typeof AuthenticatedObservabilityIndexRoute
@@ -658,6 +881,17 @@ export interface FileRoutesByTo {
   '/api/projects': typeof ApiProjectsIndexRoute
   '/api/study-plans': typeof ApiStudyPlansIndexRoute
   '/api/learning/sources/ingest': typeof ApiLearningSourcesIngestRoute
+  '/api/lord/agent/execute': typeof ApiLordAgentExecuteRoute
+  '/api/lord/agent/stop': typeof ApiLordAgentStopRoute
+  '/api/lord/browser/action': typeof ApiLordBrowserActionRoute
+  '/api/lord/iot/devices': typeof ApiLordIotDevicesRoute
+  '/api/lord/mobile/pair': typeof ApiLordMobilePairRoute
+  '/api/lord/mobile/status': typeof ApiLordMobileStatusRoute
+  '/api/lord/office/excel': typeof ApiLordOfficeExcelRoute
+  '/api/lord/office/powerpoint': typeof ApiLordOfficePowerpointRoute
+  '/api/lord/vision/screen': typeof ApiLordVisionScreenRoute
+  '/api/lord/vision/webcam': typeof ApiLordVisionWebcamRoute
+  '/api/lord/iot/device/action': typeof ApiLordIotDeviceActionRoute
   '/api/study-plans/$id/ai/generate': typeof ApiStudyPlansIdAiGenerateRoute
   '/api/study-plans/$id/ai/optimize': typeof ApiStudyPlansIdAiOptimizeRoute
   '/api/study-plans/$id/ai/suggest': typeof ApiStudyPlansIdAiSuggestRoute
@@ -672,6 +906,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/_authenticated/command-center': typeof AuthenticatedCommandCenterRouteRouteWithChildren
   '/_authenticated/boards': typeof AuthenticatedBoardsRoute
   '/_authenticated/calendar': typeof AuthenticatedCalendarRoute
   '/_authenticated/chat': typeof AuthenticatedChatRoute
@@ -699,6 +934,15 @@ export interface FileRoutesById {
   '/api/title': typeof ApiTitleRoute
   '/share/$token': typeof ShareTokenRoute
   '/_authenticated/canvas/$id': typeof AuthenticatedCanvasIdRoute
+  '/_authenticated/command-center/automations': typeof AuthenticatedCommandCenterAutomationsRoute
+  '/_authenticated/command-center/browser': typeof AuthenticatedCommandCenterBrowserRoute
+  '/_authenticated/command-center/files': typeof AuthenticatedCommandCenterFilesRoute
+  '/_authenticated/command-center/mobile': typeof AuthenticatedCommandCenterMobileRoute
+  '/_authenticated/command-center/office': typeof AuthenticatedCommandCenterOfficeRoute
+  '/_authenticated/command-center/pc': typeof AuthenticatedCommandCenterPcRoute
+  '/_authenticated/command-center/settings': typeof AuthenticatedCommandCenterSettingsRoute
+  '/_authenticated/command-center/smart-home': typeof AuthenticatedCommandCenterSmartHomeRoute
+  '/_authenticated/command-center/vision': typeof AuthenticatedCommandCenterVisionRoute
   '/_authenticated/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/api/admin/gateway': typeof ApiAdminGatewayRoute
   '/api/brain/context': typeof ApiBrainContextRoute
@@ -725,12 +969,19 @@ export interface FileRoutesById {
   '/api/learning/session': typeof ApiLearningSessionRoute
   '/api/learning/voice': typeof ApiLearningVoiceRoute
   '/api/learning/whiteboard': typeof ApiLearningWhiteboardRoute
+  '/api/lord/activity': typeof ApiLordActivityRoute
+  '/api/lord/automation': typeof ApiLordAutomationRoute
+  '/api/lord/file': typeof ApiLordFileRoute
+  '/api/lord/files': typeof ApiLordFilesRoute
+  '/api/lord/status': typeof ApiLordStatusRoute
+  '/api/lord/tool': typeof ApiLordToolRoute
   '/api/observability/health': typeof ApiObservabilityHealthRoute
   '/api/projects/$id': typeof ApiProjectsIdRoute
   '/api/shared/$token': typeof ApiSharedTokenRoute
   '/api/shares/$token': typeof ApiSharesTokenRoute
   '/api/study-plans/$id': typeof ApiStudyPlansIdRouteWithChildren
   '/_authenticated/canvas/': typeof AuthenticatedCanvasIndexRoute
+  '/_authenticated/command-center/': typeof AuthenticatedCommandCenterIndexRoute
   '/_authenticated/dashboards/': typeof AuthenticatedDashboardsIndexRoute
   '/_authenticated/knowledge2/': typeof AuthenticatedKnowledge2IndexRoute
   '/_authenticated/observability/': typeof AuthenticatedObservabilityIndexRoute
@@ -741,6 +992,17 @@ export interface FileRoutesById {
   '/api/projects/': typeof ApiProjectsIndexRoute
   '/api/study-plans/': typeof ApiStudyPlansIndexRoute
   '/api/learning/sources/ingest': typeof ApiLearningSourcesIngestRoute
+  '/api/lord/agent/execute': typeof ApiLordAgentExecuteRoute
+  '/api/lord/agent/stop': typeof ApiLordAgentStopRoute
+  '/api/lord/browser/action': typeof ApiLordBrowserActionRoute
+  '/api/lord/iot/devices': typeof ApiLordIotDevicesRoute
+  '/api/lord/mobile/pair': typeof ApiLordMobilePairRoute
+  '/api/lord/mobile/status': typeof ApiLordMobileStatusRoute
+  '/api/lord/office/excel': typeof ApiLordOfficeExcelRoute
+  '/api/lord/office/powerpoint': typeof ApiLordOfficePowerpointRoute
+  '/api/lord/vision/screen': typeof ApiLordVisionScreenRoute
+  '/api/lord/vision/webcam': typeof ApiLordVisionWebcamRoute
+  '/api/lord/iot/device/action': typeof ApiLordIotDeviceActionRoute
   '/api/study-plans/$id/ai/generate': typeof ApiStudyPlansIdAiGenerateRoute
   '/api/study-plans/$id/ai/optimize': typeof ApiStudyPlansIdAiOptimizeRoute
   '/api/study-plans/$id/ai/suggest': typeof ApiStudyPlansIdAiSuggestRoute
@@ -755,6 +1017,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/sitemap.xml'
+    | '/command-center'
     | '/boards'
     | '/calendar'
     | '/chat'
@@ -782,6 +1045,15 @@ export interface FileRouteTypes {
     | '/api/title'
     | '/share/$token'
     | '/canvas/$id'
+    | '/command-center/automations'
+    | '/command-center/browser'
+    | '/command-center/files'
+    | '/command-center/mobile'
+    | '/command-center/office'
+    | '/command-center/pc'
+    | '/command-center/settings'
+    | '/command-center/smart-home'
+    | '/command-center/vision'
     | '/projects/$id'
     | '/api/admin/gateway'
     | '/api/brain/context'
@@ -808,12 +1080,19 @@ export interface FileRouteTypes {
     | '/api/learning/session'
     | '/api/learning/voice'
     | '/api/learning/whiteboard'
+    | '/api/lord/activity'
+    | '/api/lord/automation'
+    | '/api/lord/file'
+    | '/api/lord/files'
+    | '/api/lord/status'
+    | '/api/lord/tool'
     | '/api/observability/health'
     | '/api/projects/$id'
     | '/api/shared/$token'
     | '/api/shares/$token'
     | '/api/study-plans/$id'
     | '/canvas/'
+    | '/command-center/'
     | '/dashboards/'
     | '/knowledge2/'
     | '/observability/'
@@ -824,6 +1103,17 @@ export interface FileRouteTypes {
     | '/api/projects/'
     | '/api/study-plans/'
     | '/api/learning/sources/ingest'
+    | '/api/lord/agent/execute'
+    | '/api/lord/agent/stop'
+    | '/api/lord/browser/action'
+    | '/api/lord/iot/devices'
+    | '/api/lord/mobile/pair'
+    | '/api/lord/mobile/status'
+    | '/api/lord/office/excel'
+    | '/api/lord/office/powerpoint'
+    | '/api/lord/vision/screen'
+    | '/api/lord/vision/webcam'
+    | '/api/lord/iot/device/action'
     | '/api/study-plans/$id/ai/generate'
     | '/api/study-plans/$id/ai/optimize'
     | '/api/study-plans/$id/ai/suggest'
@@ -863,6 +1153,15 @@ export interface FileRouteTypes {
     | '/api/title'
     | '/share/$token'
     | '/canvas/$id'
+    | '/command-center/automations'
+    | '/command-center/browser'
+    | '/command-center/files'
+    | '/command-center/mobile'
+    | '/command-center/office'
+    | '/command-center/pc'
+    | '/command-center/settings'
+    | '/command-center/smart-home'
+    | '/command-center/vision'
     | '/projects/$id'
     | '/api/admin/gateway'
     | '/api/brain/context'
@@ -889,12 +1188,19 @@ export interface FileRouteTypes {
     | '/api/learning/session'
     | '/api/learning/voice'
     | '/api/learning/whiteboard'
+    | '/api/lord/activity'
+    | '/api/lord/automation'
+    | '/api/lord/file'
+    | '/api/lord/files'
+    | '/api/lord/status'
+    | '/api/lord/tool'
     | '/api/observability/health'
     | '/api/projects/$id'
     | '/api/shared/$token'
     | '/api/shares/$token'
     | '/api/study-plans/$id'
     | '/canvas'
+    | '/command-center'
     | '/dashboards'
     | '/knowledge2'
     | '/observability'
@@ -905,6 +1211,17 @@ export interface FileRouteTypes {
     | '/api/projects'
     | '/api/study-plans'
     | '/api/learning/sources/ingest'
+    | '/api/lord/agent/execute'
+    | '/api/lord/agent/stop'
+    | '/api/lord/browser/action'
+    | '/api/lord/iot/devices'
+    | '/api/lord/mobile/pair'
+    | '/api/lord/mobile/status'
+    | '/api/lord/office/excel'
+    | '/api/lord/office/powerpoint'
+    | '/api/lord/vision/screen'
+    | '/api/lord/vision/webcam'
+    | '/api/lord/iot/device/action'
     | '/api/study-plans/$id/ai/generate'
     | '/api/study-plans/$id/ai/optimize'
     | '/api/study-plans/$id/ai/suggest'
@@ -918,6 +1235,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/sitemap.xml'
+    | '/_authenticated/command-center'
     | '/_authenticated/boards'
     | '/_authenticated/calendar'
     | '/_authenticated/chat'
@@ -945,6 +1263,15 @@ export interface FileRouteTypes {
     | '/api/title'
     | '/share/$token'
     | '/_authenticated/canvas/$id'
+    | '/_authenticated/command-center/automations'
+    | '/_authenticated/command-center/browser'
+    | '/_authenticated/command-center/files'
+    | '/_authenticated/command-center/mobile'
+    | '/_authenticated/command-center/office'
+    | '/_authenticated/command-center/pc'
+    | '/_authenticated/command-center/settings'
+    | '/_authenticated/command-center/smart-home'
+    | '/_authenticated/command-center/vision'
     | '/_authenticated/projects/$id'
     | '/api/admin/gateway'
     | '/api/brain/context'
@@ -971,12 +1298,19 @@ export interface FileRouteTypes {
     | '/api/learning/session'
     | '/api/learning/voice'
     | '/api/learning/whiteboard'
+    | '/api/lord/activity'
+    | '/api/lord/automation'
+    | '/api/lord/file'
+    | '/api/lord/files'
+    | '/api/lord/status'
+    | '/api/lord/tool'
     | '/api/observability/health'
     | '/api/projects/$id'
     | '/api/shared/$token'
     | '/api/shares/$token'
     | '/api/study-plans/$id'
     | '/_authenticated/canvas/'
+    | '/_authenticated/command-center/'
     | '/_authenticated/dashboards/'
     | '/_authenticated/knowledge2/'
     | '/_authenticated/observability/'
@@ -987,6 +1321,17 @@ export interface FileRouteTypes {
     | '/api/projects/'
     | '/api/study-plans/'
     | '/api/learning/sources/ingest'
+    | '/api/lord/agent/execute'
+    | '/api/lord/agent/stop'
+    | '/api/lord/browser/action'
+    | '/api/lord/iot/devices'
+    | '/api/lord/mobile/pair'
+    | '/api/lord/mobile/status'
+    | '/api/lord/office/excel'
+    | '/api/lord/office/powerpoint'
+    | '/api/lord/vision/screen'
+    | '/api/lord/vision/webcam'
+    | '/api/lord/iot/device/action'
     | '/api/study-plans/$id/ai/generate'
     | '/api/study-plans/$id/ai/optimize'
     | '/api/study-plans/$id/ai/suggest'
@@ -1031,6 +1376,12 @@ export interface RootRouteChildren {
   ApiLearningSessionRoute: typeof ApiLearningSessionRoute
   ApiLearningVoiceRoute: typeof ApiLearningVoiceRoute
   ApiLearningWhiteboardRoute: typeof ApiLearningWhiteboardRoute
+  ApiLordActivityRoute: typeof ApiLordActivityRoute
+  ApiLordAutomationRoute: typeof ApiLordAutomationRoute
+  ApiLordFileRoute: typeof ApiLordFileRoute
+  ApiLordFilesRoute: typeof ApiLordFilesRoute
+  ApiLordStatusRoute: typeof ApiLordStatusRoute
+  ApiLordToolRoute: typeof ApiLordToolRoute
   ApiObservabilityHealthRoute: typeof ApiObservabilityHealthRoute
   ApiProjectsIdRoute: typeof ApiProjectsIdRoute
   ApiSharedTokenRoute: typeof ApiSharedTokenRoute
@@ -1041,6 +1392,17 @@ export interface RootRouteChildren {
   ApiProjectsIndexRoute: typeof ApiProjectsIndexRoute
   ApiStudyPlansIndexRoute: typeof ApiStudyPlansIndexRoute
   ApiLearningSourcesIngestRoute: typeof ApiLearningSourcesIngestRoute
+  ApiLordAgentExecuteRoute: typeof ApiLordAgentExecuteRoute
+  ApiLordAgentStopRoute: typeof ApiLordAgentStopRoute
+  ApiLordBrowserActionRoute: typeof ApiLordBrowserActionRoute
+  ApiLordIotDevicesRoute: typeof ApiLordIotDevicesRoute
+  ApiLordMobilePairRoute: typeof ApiLordMobilePairRoute
+  ApiLordMobileStatusRoute: typeof ApiLordMobileStatusRoute
+  ApiLordOfficeExcelRoute: typeof ApiLordOfficeExcelRoute
+  ApiLordOfficePowerpointRoute: typeof ApiLordOfficePowerpointRoute
+  ApiLordVisionScreenRoute: typeof ApiLordVisionScreenRoute
+  ApiLordVisionWebcamRoute: typeof ApiLordVisionWebcamRoute
+  ApiLordIotDeviceActionRoute: typeof ApiLordIotDeviceActionRoute
   ApiResearchIdSourcesIndexRoute: typeof ApiResearchIdSourcesIndexRoute
 }
 
@@ -1263,6 +1625,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBoardsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/command-center': {
+      id: '/_authenticated/command-center'
+      path: '/command-center'
+      fullPath: '/command-center'
+      preLoaderRoute: typeof AuthenticatedCommandCenterRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/api/study-plans/': {
       id: '/api/study-plans/'
       path: '/api/study-plans'
@@ -1326,6 +1695,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/command-center/': {
+      id: '/_authenticated/command-center/'
+      path: '/'
+      fullPath: '/command-center/'
+      preLoaderRoute: typeof AuthenticatedCommandCenterIndexRouteImport
+      parentRoute: typeof AuthenticatedCommandCenterRouteRoute
+    }
     '/_authenticated/canvas/': {
       id: '/_authenticated/canvas/'
       path: '/canvas'
@@ -1366,6 +1742,48 @@ declare module '@tanstack/react-router' {
       path: '/api/observability/health'
       fullPath: '/api/observability/health'
       preLoaderRoute: typeof ApiObservabilityHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/lord/tool': {
+      id: '/api/lord/tool'
+      path: '/api/lord/tool'
+      fullPath: '/api/lord/tool'
+      preLoaderRoute: typeof ApiLordToolRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/lord/status': {
+      id: '/api/lord/status'
+      path: '/api/lord/status'
+      fullPath: '/api/lord/status'
+      preLoaderRoute: typeof ApiLordStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/lord/files': {
+      id: '/api/lord/files'
+      path: '/api/lord/files'
+      fullPath: '/api/lord/files'
+      preLoaderRoute: typeof ApiLordFilesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/lord/file': {
+      id: '/api/lord/file'
+      path: '/api/lord/file'
+      fullPath: '/api/lord/file'
+      preLoaderRoute: typeof ApiLordFileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/lord/automation': {
+      id: '/api/lord/automation'
+      path: '/api/lord/automation'
+      fullPath: '/api/lord/automation'
+      preLoaderRoute: typeof ApiLordAutomationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/lord/activity': {
+      id: '/api/lord/activity'
+      path: '/api/lord/activity'
+      fullPath: '/api/lord/activity'
+      preLoaderRoute: typeof ApiLordActivityRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/learning/whiteboard': {
@@ -1550,12 +1968,145 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjectsIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/command-center/vision': {
+      id: '/_authenticated/command-center/vision'
+      path: '/vision'
+      fullPath: '/command-center/vision'
+      preLoaderRoute: typeof AuthenticatedCommandCenterVisionRouteImport
+      parentRoute: typeof AuthenticatedCommandCenterRouteRoute
+    }
+    '/_authenticated/command-center/smart-home': {
+      id: '/_authenticated/command-center/smart-home'
+      path: '/smart-home'
+      fullPath: '/command-center/smart-home'
+      preLoaderRoute: typeof AuthenticatedCommandCenterSmartHomeRouteImport
+      parentRoute: typeof AuthenticatedCommandCenterRouteRoute
+    }
+    '/_authenticated/command-center/settings': {
+      id: '/_authenticated/command-center/settings'
+      path: '/settings'
+      fullPath: '/command-center/settings'
+      preLoaderRoute: typeof AuthenticatedCommandCenterSettingsRouteImport
+      parentRoute: typeof AuthenticatedCommandCenterRouteRoute
+    }
+    '/_authenticated/command-center/pc': {
+      id: '/_authenticated/command-center/pc'
+      path: '/pc'
+      fullPath: '/command-center/pc'
+      preLoaderRoute: typeof AuthenticatedCommandCenterPcRouteImport
+      parentRoute: typeof AuthenticatedCommandCenterRouteRoute
+    }
+    '/_authenticated/command-center/office': {
+      id: '/_authenticated/command-center/office'
+      path: '/office'
+      fullPath: '/command-center/office'
+      preLoaderRoute: typeof AuthenticatedCommandCenterOfficeRouteImport
+      parentRoute: typeof AuthenticatedCommandCenterRouteRoute
+    }
+    '/_authenticated/command-center/mobile': {
+      id: '/_authenticated/command-center/mobile'
+      path: '/mobile'
+      fullPath: '/command-center/mobile'
+      preLoaderRoute: typeof AuthenticatedCommandCenterMobileRouteImport
+      parentRoute: typeof AuthenticatedCommandCenterRouteRoute
+    }
+    '/_authenticated/command-center/files': {
+      id: '/_authenticated/command-center/files'
+      path: '/files'
+      fullPath: '/command-center/files'
+      preLoaderRoute: typeof AuthenticatedCommandCenterFilesRouteImport
+      parentRoute: typeof AuthenticatedCommandCenterRouteRoute
+    }
+    '/_authenticated/command-center/browser': {
+      id: '/_authenticated/command-center/browser'
+      path: '/browser'
+      fullPath: '/command-center/browser'
+      preLoaderRoute: typeof AuthenticatedCommandCenterBrowserRouteImport
+      parentRoute: typeof AuthenticatedCommandCenterRouteRoute
+    }
+    '/_authenticated/command-center/automations': {
+      id: '/_authenticated/command-center/automations'
+      path: '/automations'
+      fullPath: '/command-center/automations'
+      preLoaderRoute: typeof AuthenticatedCommandCenterAutomationsRouteImport
+      parentRoute: typeof AuthenticatedCommandCenterRouteRoute
+    }
     '/_authenticated/canvas/$id': {
       id: '/_authenticated/canvas/$id'
       path: '/canvas/$id'
       fullPath: '/canvas/$id'
       preLoaderRoute: typeof AuthenticatedCanvasIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/lord/vision/webcam': {
+      id: '/api/lord/vision/webcam'
+      path: '/api/lord/vision/webcam'
+      fullPath: '/api/lord/vision/webcam'
+      preLoaderRoute: typeof ApiLordVisionWebcamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/lord/vision/screen': {
+      id: '/api/lord/vision/screen'
+      path: '/api/lord/vision/screen'
+      fullPath: '/api/lord/vision/screen'
+      preLoaderRoute: typeof ApiLordVisionScreenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/lord/office/powerpoint': {
+      id: '/api/lord/office/powerpoint'
+      path: '/api/lord/office/powerpoint'
+      fullPath: '/api/lord/office/powerpoint'
+      preLoaderRoute: typeof ApiLordOfficePowerpointRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/lord/office/excel': {
+      id: '/api/lord/office/excel'
+      path: '/api/lord/office/excel'
+      fullPath: '/api/lord/office/excel'
+      preLoaderRoute: typeof ApiLordOfficeExcelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/lord/mobile/status': {
+      id: '/api/lord/mobile/status'
+      path: '/api/lord/mobile/status'
+      fullPath: '/api/lord/mobile/status'
+      preLoaderRoute: typeof ApiLordMobileStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/lord/mobile/pair': {
+      id: '/api/lord/mobile/pair'
+      path: '/api/lord/mobile/pair'
+      fullPath: '/api/lord/mobile/pair'
+      preLoaderRoute: typeof ApiLordMobilePairRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/lord/iot/devices': {
+      id: '/api/lord/iot/devices'
+      path: '/api/lord/iot/devices'
+      fullPath: '/api/lord/iot/devices'
+      preLoaderRoute: typeof ApiLordIotDevicesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/lord/browser/action': {
+      id: '/api/lord/browser/action'
+      path: '/api/lord/browser/action'
+      fullPath: '/api/lord/browser/action'
+      preLoaderRoute: typeof ApiLordBrowserActionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/lord/agent/stop': {
+      id: '/api/lord/agent/stop'
+      path: '/api/lord/agent/stop'
+      fullPath: '/api/lord/agent/stop'
+      preLoaderRoute: typeof ApiLordAgentStopRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/lord/agent/execute': {
+      id: '/api/lord/agent/execute'
+      path: '/api/lord/agent/execute'
+      fullPath: '/api/lord/agent/execute'
+      preLoaderRoute: typeof ApiLordAgentExecuteRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/learning/sources/ingest': {
       id: '/api/learning/sources/ingest'
@@ -1606,10 +2157,57 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiStudyPlansIdAiGenerateRouteImport
       parentRoute: typeof ApiStudyPlansIdRoute
     }
+    '/api/lord/iot/device/action': {
+      id: '/api/lord/iot/device/action'
+      path: '/api/lord/iot/device/action'
+      fullPath: '/api/lord/iot/device/action'
+      preLoaderRoute: typeof ApiLordIotDeviceActionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
+interface AuthenticatedCommandCenterRouteRouteChildren {
+  AuthenticatedCommandCenterAutomationsRoute: typeof AuthenticatedCommandCenterAutomationsRoute
+  AuthenticatedCommandCenterBrowserRoute: typeof AuthenticatedCommandCenterBrowserRoute
+  AuthenticatedCommandCenterFilesRoute: typeof AuthenticatedCommandCenterFilesRoute
+  AuthenticatedCommandCenterMobileRoute: typeof AuthenticatedCommandCenterMobileRoute
+  AuthenticatedCommandCenterOfficeRoute: typeof AuthenticatedCommandCenterOfficeRoute
+  AuthenticatedCommandCenterPcRoute: typeof AuthenticatedCommandCenterPcRoute
+  AuthenticatedCommandCenterSettingsRoute: typeof AuthenticatedCommandCenterSettingsRoute
+  AuthenticatedCommandCenterSmartHomeRoute: typeof AuthenticatedCommandCenterSmartHomeRoute
+  AuthenticatedCommandCenterVisionRoute: typeof AuthenticatedCommandCenterVisionRoute
+  AuthenticatedCommandCenterIndexRoute: typeof AuthenticatedCommandCenterIndexRoute
+}
+
+const AuthenticatedCommandCenterRouteRouteChildren: AuthenticatedCommandCenterRouteRouteChildren =
+  {
+    AuthenticatedCommandCenterAutomationsRoute:
+      AuthenticatedCommandCenterAutomationsRoute,
+    AuthenticatedCommandCenterBrowserRoute:
+      AuthenticatedCommandCenterBrowserRoute,
+    AuthenticatedCommandCenterFilesRoute: AuthenticatedCommandCenterFilesRoute,
+    AuthenticatedCommandCenterMobileRoute:
+      AuthenticatedCommandCenterMobileRoute,
+    AuthenticatedCommandCenterOfficeRoute:
+      AuthenticatedCommandCenterOfficeRoute,
+    AuthenticatedCommandCenterPcRoute: AuthenticatedCommandCenterPcRoute,
+    AuthenticatedCommandCenterSettingsRoute:
+      AuthenticatedCommandCenterSettingsRoute,
+    AuthenticatedCommandCenterSmartHomeRoute:
+      AuthenticatedCommandCenterSmartHomeRoute,
+    AuthenticatedCommandCenterVisionRoute:
+      AuthenticatedCommandCenterVisionRoute,
+    AuthenticatedCommandCenterIndexRoute: AuthenticatedCommandCenterIndexRoute,
+  }
+
+const AuthenticatedCommandCenterRouteRouteWithChildren =
+  AuthenticatedCommandCenterRouteRoute._addFileChildren(
+    AuthenticatedCommandCenterRouteRouteChildren,
+  )
+
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedCommandCenterRouteRoute: typeof AuthenticatedCommandCenterRouteRouteWithChildren
   AuthenticatedBoardsRoute: typeof AuthenticatedBoardsRoute
   AuthenticatedCalendarRoute: typeof AuthenticatedCalendarRoute
   AuthenticatedChatRoute: typeof AuthenticatedChatRoute
@@ -1638,6 +2236,8 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedCommandCenterRouteRoute:
+    AuthenticatedCommandCenterRouteRouteWithChildren,
   AuthenticatedBoardsRoute: AuthenticatedBoardsRoute,
   AuthenticatedCalendarRoute: AuthenticatedCalendarRoute,
   AuthenticatedChatRoute: AuthenticatedChatRoute,
@@ -1752,6 +2352,12 @@ const rootRouteChildren: RootRouteChildren = {
   ApiLearningSessionRoute: ApiLearningSessionRoute,
   ApiLearningVoiceRoute: ApiLearningVoiceRoute,
   ApiLearningWhiteboardRoute: ApiLearningWhiteboardRoute,
+  ApiLordActivityRoute: ApiLordActivityRoute,
+  ApiLordAutomationRoute: ApiLordAutomationRoute,
+  ApiLordFileRoute: ApiLordFileRoute,
+  ApiLordFilesRoute: ApiLordFilesRoute,
+  ApiLordStatusRoute: ApiLordStatusRoute,
+  ApiLordToolRoute: ApiLordToolRoute,
   ApiObservabilityHealthRoute: ApiObservabilityHealthRoute,
   ApiProjectsIdRoute: ApiProjectsIdRoute,
   ApiSharedTokenRoute: ApiSharedTokenRoute,
@@ -1762,6 +2368,17 @@ const rootRouteChildren: RootRouteChildren = {
   ApiProjectsIndexRoute: ApiProjectsIndexRoute,
   ApiStudyPlansIndexRoute: ApiStudyPlansIndexRoute,
   ApiLearningSourcesIngestRoute: ApiLearningSourcesIngestRoute,
+  ApiLordAgentExecuteRoute: ApiLordAgentExecuteRoute,
+  ApiLordAgentStopRoute: ApiLordAgentStopRoute,
+  ApiLordBrowserActionRoute: ApiLordBrowserActionRoute,
+  ApiLordIotDevicesRoute: ApiLordIotDevicesRoute,
+  ApiLordMobilePairRoute: ApiLordMobilePairRoute,
+  ApiLordMobileStatusRoute: ApiLordMobileStatusRoute,
+  ApiLordOfficeExcelRoute: ApiLordOfficeExcelRoute,
+  ApiLordOfficePowerpointRoute: ApiLordOfficePowerpointRoute,
+  ApiLordVisionScreenRoute: ApiLordVisionScreenRoute,
+  ApiLordVisionWebcamRoute: ApiLordVisionWebcamRoute,
+  ApiLordIotDeviceActionRoute: ApiLordIotDeviceActionRoute,
   ApiResearchIdSourcesIndexRoute: ApiResearchIdSourcesIndexRoute,
 }
 export const routeTree = rootRouteImport

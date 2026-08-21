@@ -22,6 +22,12 @@ import {
 } from "@/lib/ai-gateway.server";
 import type { TokenUsageEvent } from "@/lib/token-usage-store";
 import { apiErrorResponse, getSafeErrorMessage, type ProviderStatus } from "@/lib/api-error";
+import {
+  createLordError,
+  lordErrorResponse,
+  type LordError,
+  type LordErrorCode,
+} from "@/lib/lord-error";
 import { requireSupabaseRequestAuth } from "@/integrations/supabase/auth-middleware";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
@@ -70,6 +76,99 @@ function sanitizeProviderMessage(message?: string): string | undefined {
 // Verbose per-request tracing. Suppressed in production unless LORD_CHAT_DEBUG
 // is set, so we never leak request previews / diagnostics into prod logs.
 const CHAT_DEBUG = process.env.LORD_CHAT_DEBUG === "true";
+
+// ---------------------------------------------------------------------------
+// Structured, request-correlated logging (Phase 2 / Phase 3).
+// These run in ALL environments so every error carries a request id and the
+// frontend can always correlate a failure to a backend log line. Secrets are
+// never logged.
+// ---------------------------------------------------------------------------
+
+function logRequest(event: string, payload: Record<string, unknown>) {
+  console.info(JSON.stringify({ event, ...payload }));
+}
+
+function logRequestError(event: string, payload: Record<string, unknown>) {
+  console.error(JSON.stringify({ event, ...payload }));
+}
+
+interface ResolvedChatFailure {
+  code: LordErrorCode;
+  httpStatus: number;
+  message: string;
+  recoverable: boolean;
+}
+
+// Normalize any thrown value from the gateway into one of the `LordError` codes
+// plus an HTTP status and a user-facing message (Phases 5, 11, 12).
+function resolveChatFailure(args: {
+  err: unknown;
+  attempts?: ModelAttempt[];
+  routing: AllProvidersFailedError | null;
+}): ResolvedChatFailure {
+  const { err, attempts, routing } = args;
+  const authLabel = GATEWAY_CONFIG.errorReasonLabels.invalid_api_key;
+
+  if (attempts?.some((a) => a.reason === "Insufficient credits")) {
+    return {
+      code: "AI_CREDITS_EXHAUSTED",
+      httpStatus: 402,
+      recoverable: true,
+      message: "AI credits are exhausted. Add workspace credits and try again.",
+    };
+  }
+  if (!routing && attempts?.some((a) => a.reason === "Rate limited")) {
+    return {
+      code: "AI_RATE_LIMITED",
+      httpStatus: 429,
+      recoverable: true,
+      message: "AI is receiving too many requests. Please retry shortly.",
+    };
+  }
+
+  const { reason } = classifyModelError(err);
+  const everyAttemptWasAuthFailure =
+    !!attempts && attempts.length > 0 && attempts.every((a) => a.reason === authLabel);
+
+  if (reason === "invalid_api_key" || everyAttemptWasAuthFailure) {
+    return {
+      code: "AI_AUTH_ERROR",
+      httpStatus: 401,
+      recoverable: false,
+      message: "The AI provider rejected the request. Check the server API key.",
+    };
+  }
+  if (reason === "malformed_request" || reason === "invalid_messages") {
+    return {
+      code: "AI_BAD_REQUEST",
+      httpStatus: 400,
+      recoverable: false,
+      message: "The AI request was malformed.",
+    };
+  }
+  if (reason === "model_unavailable") {
+    return {
+      code: "AI_PROVIDER_UNAVAILABLE",
+      httpStatus: 502,
+      recoverable: true,
+      message: "The selected model is unavailable. Trying a fallback model.",
+    };
+  }
+
+  // Routing exhausted (or aborted before routing completed).
+  const userMessage = !routing
+    ? "The AI request failed before the provider fallback could complete. Please try again in a few moments."
+    : !routing.allProvidersAttempted
+      ? `The AI request stopped before every configured provider was tried (not attempted: ${routing.notAttemptedProviders.join(", ")}). Please try again in a few moments.`
+      : "All AI providers are temporarily unavailable. Please try again in a few moments.";
+
+  return {
+    code: "AI_UPSTREAM_ERROR",
+    httpStatus: 502,
+    recoverable: true,
+    message: userMessage,
+  };
+}
 
 function logChat(event: string, payload: Record<string, unknown>) {
   if (!CHAT_DEBUG) return;
@@ -158,41 +257,6 @@ function buildProviderStatuses(validationResults: StartupValidationResult[]): Pr
   return statuses;
 }
 
-function buildUserFriendlyMessage(
-  attempts: ModelAttempt[],
-  providerStatuses: ProviderStatus[],
-): string {
-  if (providerStatuses.length === 0) {
-    return "No AI providers are currently available. Please try again in a few moments.";
-  }
-
-  const parts: string[] = [];
-  for (const ps of providerStatuses) {
-    switch (ps.status) {
-      case "missing_api_key":
-        parts.push(`${ps.provider} is missing an API key.`);
-        break;
-      case "unavailable":
-        parts.push(`${ps.provider} is temporarily unavailable.`);
-        break;
-      case "rate_limited":
-        parts.push(`${ps.provider} is rate limited.`);
-        break;
-      case "invalid":
-        parts.push(`${ps.provider} has an invalid configuration.`);
-        break;
-      default:
-        parts.push(`${ps.provider} is experiencing issues.`);
-    }
-  }
-
-  if (parts.length === 0) {
-    return "All AI providers are currently unavailable. Please try again in a few moments.";
-  }
-
-  return parts.join(" ") + " Please try again in a few moments.";
-}
-
 let startupValidationPromise: Promise<StartupValidationResult[]> | null = null;
 
 async function getStartupValidation(state: LordProvidersState): Promise<StartupValidationResult[]> {
@@ -213,7 +277,7 @@ export const Route = createFileRoute("/api/chat")({
     handlers: {
       POST: async ({ request, context }) => {
         const requestId = crypto.randomUUID();
-        logChat("chat_handler_enter", { requestId, message: "CHAT HANDLER ENTER" });
+        logRequest("request_start", { requestId });
         const t0 = performance.now();
         const configuredProviders = getConfiguredProviders();
         const providerDiagnostics = getProviderConfigurationDiagnostics();
@@ -312,6 +376,12 @@ export const Route = createFileRoute("/api/chat")({
           messageCount: body.messages.length,
           lastUserPreview: getLastUserText(uiMessages),
         });
+        logRequest("request_validated", {
+          requestId,
+          mode,
+          explicitModelId: explicitModelId ?? null,
+          messageCount: body.messages.length,
+        });
 
         const logger = createLogger(GATEWAY_CONFIG);
         const lordState: LordProvidersState = createLordProviders(logger);
@@ -371,6 +441,57 @@ export const Route = createFileRoute("/api/chat")({
               "X-LordAI-Model": model,
               "X-LordAI-Provider": provider,
             },
+            // Surface the REAL reason to the client instead of the SDK default
+            // "An error occurred." (Phase 5 / Phase 11). The message is a
+            // JSON-encoded `LordError` the frontend re-parses into an actionable
+            // card. Stream-level errors are always retryable-driven: client
+            // cancellation / abort is reported as recoverable so Retry is safe.
+            onError: (error: unknown) => {
+              const classification = classifyModelError(error);
+              const rawMessage =
+                classification.providerMessage ??
+                (error instanceof Error ? error.message : getSafeErrorMessage(error));
+              const lower = rawMessage.toLowerCase();
+              const name = error instanceof Error ? error.name : "";
+              let code: LordErrorCode = "AI_UPSTREAM_ERROR";
+              if (classification.reason === "invalid_api_key") code = "AI_AUTH_ERROR";
+              else if (
+                classification.reason === "malformed_request" ||
+                classification.reason === "invalid_messages"
+              )
+                code = "AI_BAD_REQUEST";
+              else if (classification.reason === "insufficient_credits")
+                code = "AI_CREDITS_EXHAUSTED";
+              else if (classification.reason === "rate_limit") code = "AI_RATE_LIMITED";
+              else if (classification.reason === "model_unavailable")
+                code = "AI_PROVIDER_UNAVAILABLE";
+              else if (
+                lower.includes("timeout") ||
+                lower.includes("timed out") ||
+                name === "TimeoutError"
+              )
+                code = "AI_TIMEOUT";
+              else if (lower.includes("abort") || name === "AbortError")
+                code = "AI_STREAM_INTERRUPTED";
+              else if (lower.includes("network") || lower.includes("fetch failed"))
+                code = "AI_STREAM_INTERRUPTED";
+              const lordErr = createLordError({
+                code,
+                provider,
+                model,
+                message: rawMessage,
+                recoverable: classification.retryable,
+                requestId,
+              });
+              logger.error("ai_stream_error_surfaced", {
+                requestId,
+                provider,
+                model,
+                code,
+                message: rawMessage,
+              });
+              return JSON.stringify(lordErr);
+            },
             messageMetadata: ({ part }) => {
               if (part.type !== "finish") return undefined;
               if (tokenUsageEvent) return { tokenUsage: tokenUsageEvent };
@@ -426,122 +547,44 @@ export const Route = createFileRoute("/api/chat")({
             routing?.providerStatuses ??
             (err as unknown as { providerStatuses?: ProviderStatus[] })?.providerStatuses;
 
-          // When credits/rate-limits fail for one model they fail for all, so
-          // surface the most specific status we have.
-          if (attempts?.some((a) => a.reason === "Insufficient credits")) {
-            return apiErrorResponse(
-              402,
-              "AI_CREDITS_EXHAUSTED",
-              "AI credits are exhausted. Add workspace credits and try again.",
-              requestId,
-              {
-                attempts:
-                  attempts?.map((a) => ({
-                    model: a.model,
-                    status: a.status,
-                    reason: a.reason,
-                    retryable: a.retryable,
-                    providerMessage: sanitizeProviderMessage(a.providerMessage),
-                    errorCode: a.errorCode,
-                    requestId: a.requestId,
-                  })) ?? [],
-                providerStatuses,
-              },
-            );
-          }
-          if (attempts?.some((a) => a.reason === "Rate limited")) {
-            return apiErrorResponse(
-              429,
-              "AI_RATE_LIMITED",
-              "AI is receiving too many requests. Please retry shortly.",
-              requestId,
-              {
-                attempts:
-                  attempts?.map((a) => ({
-                    model: a.model,
-                    status: a.status,
-                    reason: a.reason,
-                    retryable: a.retryable,
-                    providerMessage: sanitizeProviderMessage(a.providerMessage),
-                    errorCode: a.errorCode,
-                    requestId: a.requestId,
-                  })) ?? [],
-                providerStatuses,
-              },
-            );
-          }
+          const failureProvider =
+            routing?.attemptedProviders?.[routing.attemptedProviders.length - 1] ?? "unknown";
+          const failureModel = lastAttempt?.model ?? "unknown";
 
-          const { reason, status } = classifyModelError(err);
-          const authLabel = GATEWAY_CONFIG.errorReasonLabels.invalid_api_key;
-          const everyAttemptWasAuthFailure =
-            !!attempts && attempts.length > 0 && attempts.every((a) => a.reason === authLabel);
-          if (reason === "invalid_api_key" || everyAttemptWasAuthFailure) {
-            return apiErrorResponse(
-              401,
-              "AI_AUTH_ERROR",
-              "The AI provider rejected the request. Check the server API key.",
-              requestId,
-              {
-                attempts: attempts?.map((a) => ({
-                  model: a.model,
-                  status: a.status,
-                  reason: a.reason,
-                  retryable: a.retryable,
-                  providerMessage: sanitizeProviderMessage(a.providerMessage),
-                  errorCode: a.errorCode,
-                  requestId: a.requestId,
-                })),
-                configuredProviders: routing?.configuredProviders,
-                providerStatuses,
-              },
-            );
-          }
-          if (reason === "malformed_request" || reason === "invalid_messages") {
-            return apiErrorResponse(
-              400,
-              "AI_BAD_REQUEST",
-              "The AI request was malformed.",
-              requestId,
-              {
-                attempts: attempts?.map((a) => ({
-                  model: a.model,
-                  status: a.status,
-                  reason: a.reason,
-                  retryable: a.retryable,
-                  providerMessage: sanitizeProviderMessage(a.providerMessage),
-                  errorCode: a.errorCode,
-                  requestId: a.requestId,
-                })),
-                providerStatuses,
-              },
-            );
-          }
-
-          // "All configured models failed" is only accurate once every
-          // configured provider has genuinely been attempted. When routing
-          // stopped early, say so instead of blaming every provider.
-          const userMessage = !routing
-            ? "The AI request failed before the provider fallback could complete. Please try again in a few moments."
-            : !routing.allProvidersAttempted
-              ? `The AI request stopped before every configured provider was tried (not attempted: ${routing.notAttemptedProviders.join(", ")}). Please try again in a few moments.`
-              : providerStatuses && providerStatuses.length > 0
-                ? buildUserFriendlyMessage(attempts ?? [], providerStatuses)
-                : "All configured models failed.";
-
-          return apiErrorResponse(502, "AI_UPSTREAM_ERROR", userMessage, requestId, {
-            attempts:
-              attempts?.map((a) => ({
-                model: a.model,
-                status: a.status,
-                reason: a.reason,
-                retryable: a.retryable,
-                providerMessage: sanitizeProviderMessage(a.providerMessage),
-                errorCode: a.errorCode,
-                requestId: a.requestId,
-              })) ?? [],
-            configuredProviders: routing?.attemptedProviders,
-            providerStatuses,
+          // Normalize every failure into a single `LordError` contract
+          // (Phase 5). The frontend only ever receives this shape.
+          const { code, httpStatus, message, recoverable } = resolveChatFailure({
+            err,
+            attempts,
+            routing,
           });
+
+          const lordError: LordError = createLordError({
+            code,
+            provider: failureProvider,
+            model: failureModel,
+            message,
+            recoverable,
+            requestId,
+          });
+
+          logRequestError("request_failed", {
+            requestId,
+            mode,
+            code,
+            httpStatus,
+            provider: failureProvider,
+            model: failureModel,
+            recoverable,
+            reason: lastAttempt?.reason ?? classifyModelError(err).reason,
+            message,
+            configuredProviders: routing?.configuredProviders ?? configuredProviders,
+            attemptedProviders: routing?.attemptedProviders,
+            notAttemptedProviders: routing?.notAttemptedProviders,
+            allProvidersAttempted: routing?.allProvidersAttempted,
+          });
+
+          return lordErrorResponse(httpStatus, lordError);
         }
       },
     },

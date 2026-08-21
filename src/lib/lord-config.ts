@@ -7,7 +7,7 @@
 // and lets every provider be configured in one place.
 import { z } from "zod";
 
-export type ProviderName = "gemini" | "openrouter" | "openai";
+export type ProviderName = "gemini" | "openrouter" | "openai" | "cloudflare";
 export type ModelCapability = "chat" | "image";
 
 export interface Candidate {
@@ -85,156 +85,251 @@ const STANDARD_IMAGE_CAPABILITIES: ImageModelCapabilities = {
  *   qwen-image-3-pro              resolution 1K|2K, seed, n≤6
  */
 export const IMAGE_MODELS: readonly ImageModelDefinition[] = [
+  // -----------------------------
+  // Cloudflare Workers AI
+  // -----------------------------
   {
-    id: "x-ai/grok-imagine-image-2.0",
-    provider: "openrouter",
+    id: "@cf/black-forest-labs/flux-1-schnell",
+    provider: "cloudflare",
     supports: ["image"],
-    label: "Grok Imagine 2",
-    description: "Fast, imaginative image generation from xAI.",
-    badges: ["Fast", "Illustration"],
+    label: "FLUX Schnell",
+    description: "Ultra-fast image generation.",
+    badges: ["Cloudflare", "Fast"],
+    maxWidth: 2048,
+    maxHeight: 2048,
+    estimatedPrice: 0.01,
+    capabilities: {
+      ...STANDARD_IMAGE_CAPABILITIES,
+      supportsSeed: true,
+      supportsResolution: false,
+    },
+  },
+
+  {
+    id: "@cf/black-forest-labs/flux-1-dev",
+    provider: "cloudflare",
+    supports: ["image"],
+    label: "FLUX Dev",
+    description: "Higher quality FLUX image generation.",
+    badges: ["Cloudflare", "Quality"],
+    maxWidth: 2048,
+    maxHeight: 2048,
+    estimatedPrice: 0.03,
+    capabilities: {
+      ...STANDARD_IMAGE_CAPABILITIES,
+      supportsSeed: true,
+      supportsResolution: false,
+    },
+  },
+
+  {
+    id: "@cf/black-forest-labs/flux-1-kontext-dev",
+    provider: "cloudflare",
+    supports: ["image"],
+    label: "FLUX Kontext",
+    description: "Context-aware image generation and editing.",
+    badges: ["Cloudflare", "Editing"],
     maxWidth: 2048,
     maxHeight: 2048,
     estimatedPrice: 0.04,
     capabilities: {
       ...STANDARD_IMAGE_CAPABILITIES,
-      // xAI only accepts quality "low" | "medium" — "high" is rejected with 400.
-      supportsQuality: true,
-    },
-  },
-  {
-    id: "black-forest-labs/flux.2-max",
-    provider: "cloudflare",
-    supports: ["image"],
-    label: "FLUX 2 Max",
-    description: "High-fidelity contextual and photorealistic imagery.",
-    badges: ["High Quality", "Photorealistic"],
-    maxWidth: 2048,
-    maxHeight: 2048,
-    estimatedPrice: 0.08,
-    capabilities: {
-      ...STANDARD_IMAGE_CAPABILITIES,
-      supportsTransparentBackground: true,
+      supportsEditing: true,
       supportsSeed: true,
-      // FLUX sizes purely by aspect ratio; it has no resolution tier parameter.
       supportsResolution: false,
     },
   },
+
   {
-    id: "google/gemini-3.1-flash-lite-image",
+    id: "@cf/black-forest-labs/flux-1-kontext-max",
     provider: "cloudflare",
     supports: ["image"],
-    label: "Nano Banana Lite",
-    description: "Google's quick, efficient image model.",
-    badges: ["Fast", "Reasoning"],
-    // Gemini Flash Lite Image only offers the 1K resolution tier.
-    maxWidth: 1024,
-    maxHeight: 1024,
-    estimatedPrice: 0.02,
-    capabilities: { ...STANDARD_IMAGE_CAPABILITIES },
+    label: "FLUX Kontext Max",
+    description: "Premium Cloudflare image model.",
+    badges: ["Cloudflare", "Premium"],
+    maxWidth: 4096,
+    maxHeight: 4096,
+    estimatedPrice: 0.08,
+    capabilities: {
+      ...STANDARD_IMAGE_CAPABILITIES,
+      supportsEditing: true,
+      supportsSeed: true,
+      supportsResolution: false,
+      supportsTransparentBackground: true,
+    },
   },
+
+  // -----------------------------
+  // OpenRouter Images
+  // -----------------------------
   {
-    id: "qwen/qwen-image-3-pro",
-    provider: "cloudflare",
+    id: "black-forest-labs/flux.1-dev",
+    provider: "openrouter",
     supports: ["image"],
-    label: "Qwen Image 3 Pro",
-    description: "Detailed composition and illustrated image generation.",
-    badges: ["High Quality", "Illustration"],
+    label: "FLUX.1 Dev",
+    description: "OpenRouter FLUX image generation.",
+    badges: ["OpenRouter"],
+    maxWidth: 2048,
+    maxHeight: 2048,
+    estimatedPrice: 0.03,
+    capabilities: {
+      ...STANDARD_IMAGE_CAPABILITIES,
+      supportsSeed: true,
+      supportsResolution: false,
+    },
+  },
+
+  {
+    id: "black-forest-labs/flux.1-schnell",
+    provider: "openrouter",
+    supports: ["image"],
+    label: "FLUX.1 Schnell",
+    description: "Fast FLUX generation via OpenRouter.",
+    badges: ["OpenRouter", "Fast"],
+    maxWidth: 2048,
+    maxHeight: 2048,
+    estimatedPrice: 0.01,
+    capabilities: {
+      ...STANDARD_IMAGE_CAPABILITIES,
+      supportsSeed: true,
+      supportsResolution: false,
+    },
+  },
+
+  {
+    id: "qwen/qwen-image-3",
+    provider: "openrouter",
+    supports: ["image"],
+    label: "Qwen Image 3",
+    description: "Detailed illustrations and creative artwork.",
+    badges: ["OpenRouter", "Creative"],
     maxWidth: 2048,
     maxHeight: 2048,
     estimatedPrice: 0.05,
     capabilities: {
       ...STANDARD_IMAGE_CAPABILITIES,
       supportsSeed: true,
-      maxImagesPerRequest: 6,
+      maxImagesPerRequest: 4,
+    },
+  },
+
+  {
+    id: "x-ai/grok-image",
+    provider: "openrouter",
+    supports: ["image"],
+    label: "Grok Image",
+    description: "xAI image generation through OpenRouter.",
+    badges: ["OpenRouter", "Creative"],
+    maxWidth: 2048,
+    maxHeight: 2048,
+    estimatedPrice: 0.05,
+    capabilities: {
+      ...STANDARD_IMAGE_CAPABILITIES,
+      supportsQuality: true,
     },
   },
 ] as const;
 
-export const DEFAULT_IMAGE_MODEL_ID = IMAGE_MODELS[0].id;
+export const DEFAULT_IMAGE_MODEL_ID = "@cf/black-forest-labs/flux-1-schnell";
+
 export function getImageModel(id?: string): ImageModelDefinition | undefined {
   return IMAGE_MODELS.find((model) => model.id === (id ?? DEFAULT_IMAGE_MODEL_ID));
 }
-
 // Current, available model ids per provider. Update model ids here only — they
 // are never hard-coded elsewhere. The `@ai-sdk/openai-compatible`, `@ai-sdk/openai`
 // and `@ai-sdk/google` providers each receive the bare model id (no prefix).
 //
 // Only stable, officially supported models are listed. Experimental and obsolete
 // slugs are removed to avoid wasting probe cycles on dead endpoints.
+// Text providers
 export const PROVIDER_CONFIG: Record<
   ProviderName,
-  { apiKeyEnv: string; models: readonly string[] }
+  {
+    apiKeyEnv: string;
+    models: readonly string[];
+  }
 > = {
   gemini: {
     apiKeyEnv: "GEMINI_API_KEY",
-    // `gemini-pro-latest` is the stable alias for the current Pro model. The
-    // previously configured `gemini-3.1-pro` does not exist on the Generative
-    // Language API (404 "is not found for API version v1beta"), and a 404 is
-    // cached as unavailable for hours — which silently removed Gemini from
-    // routing even when the key was perfectly valid.
-    models: ["gemini-3.5-flash", "gemini-pro-latest"],
+    models: ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash", "gemini-1.5-pro"],
   },
-  openrouter: {
-    apiKeyEnv: "OPENROUTER_API_KEY",
-    models: ["google/gemma-4-26b-a4b-it:free", "openai/gpt-oss-20b:free"],
-  },
+
   openai: {
     apiKeyEnv: "OPENAI_API_KEY",
     models: ["gpt-4o-mini", "gpt-4o"],
   },
+
+  openrouter: {
+    apiKeyEnv: "OPENROUTER_API_KEY",
+    models: [
+      "google/gemma-3-27b-it:free",
+      "google/gemma-4-31b-it:free",
+      "openai/gpt-oss-20b:free",
+      "meta-llama/llama-3.3-70b-instruct:free",
+      "poolside/laguna-m-1:free",
+      "poolside/laguna-xs-2.1:free",
+    ],
+  },
+
+  // Images only
+  cloudflare: {
+    apiKeyEnv: "CLOUDFLARE_API_TOKEN",
+    models: [],
+  },
 };
-
-const candidate = (provider: ProviderName, modelId: string): Candidate => ({ provider, modelId });
-
-// Routing modes map a user-facing capability to a provider-ordered candidate
-// list. Earlier entries are tried first; the backend falls back sequentially
-// through the rest only when the selected provider fails, times out, is
-// rate-limited, returns 5xx, or has no configured key.
-export const LORD_MODELS: Record<LordMode, readonly Candidate[]> = {
-  // ⚡ Lowest latency / everyday chat — prefer free/fast providers.
-  fast: [
-    candidate("gemini", "gemini-3.5-flash"),
-    candidate("openai", "gpt-4o-mini"),
-    candidate("openrouter", "google/gemma-4-26b-a4b-it:free"),
-  ],
-
-  // 💬 Best general-purpose — Gemini first, then OpenAI.
-  balanced: [
-    candidate("gemini", "gemini-3.5-flash"),
-    candidate("openai", "gpt-4o"),
-    candidate("openrouter", "google/gemma-4-26b-a4b-it:free"),
-  ],
-
-  // 🧠 Deep reasoning & planning — premium providers first.
-  reasoning: [
-    candidate("openai", "gpt-4o"),
-    candidate("gemini", "gemini-pro-latest"),
-    candidate("openrouter", "openai/gpt-oss-20b:free"),
-  ],
-
-  // 💻 Software engineering — coding-capable models first.
-  coding: [
-    candidate("openai", "gpt-4o"),
-    candidate("gemini", "gemini-3.5-flash"),
-    candidate("openrouter", "openai/gpt-oss-20b:free"),
-  ],
-
-  // 🎨 Writing, storytelling & content creation
-  creative: [
-    candidate("openai", "gpt-4o"),
-    candidate("gemini", "gemini-3.5-flash"),
-    candidate("openrouter", "google/gemma-4-26b-a4b-it:free"),
-  ],
-
-  // 🖥️ Lightweight fallback — smallest available models.
-  local: [
-    candidate("gemini", "gemini-3.5-flash"),
-    candidate("openai", "gpt-4o-mini"),
-    candidate("openrouter", "google/gemma-4-26b-a4b-it:free"),
-  ],
-};
+const candidate = (provider: ProviderName, modelId: string): Candidate => ({
+  provider,
+  modelId,
+});
 
 export type LordMode = "fast" | "balanced" | "coding" | "creative" | "reasoning" | "local";
+
+export const LORD_MODELS: Record<LordMode, readonly Candidate[]> = {
+  // ⚡ Fastest response
+  fast: [
+    candidate("gemini", "gemini-2.5-flash-lite"),
+    candidate("openrouter", "google/gemma-3-27b-it:free"),
+    candidate("openai", "gpt-4o-mini"),
+  ],
+
+  // 💬 Best everyday assistant
+  balanced: [
+    candidate("gemini", "gemini-2.5-flash"),
+    candidate("openai", "gpt-4o-mini"),
+    candidate("openrouter", "google/gemma-4-31b-it:free"),
+  ],
+
+  // 🧠 Strong reasoning
+  reasoning: [
+    candidate("openai", "gpt-4o"),
+    candidate("gemini", "gemini-1.5-pro"),
+    candidate("openrouter", "meta-llama/llama-3.3-70b-instruct:free"),
+    candidate("openrouter", "openai/gpt-oss-20b:free"),
+  ],
+
+  // 💻 Coding
+  coding: [
+    candidate("openai", "gpt-4o"),
+    candidate("gemini", "gemini-2.5-flash"),
+    candidate("openrouter", "openai/gpt-oss-20b:free"),
+    candidate("openrouter", "google/gemma-4-31b-it:free"),
+  ],
+
+  // ✍️ Writing & creativity
+  creative: [
+    candidate("gemini", "gemini-2.5-flash"),
+    candidate("openai", "gpt-4o"),
+    candidate("openrouter", "meta-llama/llama-3.3-70b-instruct:free"),
+    candidate("openrouter", "poolside/laguna-m-1:free"),
+  ],
+
+  // 🪶 Cheapest / fallback
+  local: [
+    candidate("openrouter", "google/gemma-3-27b-it:free"),
+    candidate("gemini", "gemini-2.5-flash-lite"),
+    candidate("openai", "gpt-4o-mini"),
+  ],
+};
 
 export const LORD_MODE_LABELS: Record<LordMode, string> = {
   fast: "Fast",
@@ -244,7 +339,6 @@ export const LORD_MODE_LABELS: Record<LordMode, string> = {
   reasoning: "Reasoner",
   local: "Local",
 };
-
 // Build the ordered candidate list (bare model id strings) for a mode. An
 // explicit `modelId` (kept for backwards compatibility) is tried first, then the
 // mode's own list. Duplicates are removed while preserving order. Returns bare
@@ -275,6 +369,7 @@ const PROVIDER_LABELS: Record<ProviderName, string> = {
   gemini: "Google",
   openrouter: "OpenRouter",
   openai: "OpenAI",
+  cloudflare: "Cloudflare",
 };
 
 const MODEL_DESCRIPTIONS: Record<string, string> = {
