@@ -116,8 +116,8 @@ export class ImageGenerationError extends Error {
 /** The wire contract for a failed image request (spec §8). */
 export interface ImageErrorBody {
   success: false;
-  /** Always "cloudflare" — the only image provider LORD ships. */
-  provider: "cloudflare";
+  /** Provider that handled the final attempt; failures are provider-neutral. */
+  provider: "cloudflare" | "openrouter";
   /** HTTP status the API responded with (or that the route should use). */
   status: number;
   /** Stable machine code the UI can branch on. */

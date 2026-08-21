@@ -32,6 +32,7 @@
 // because a metadata request did.
 
 import type { ImageInputMode, ImageQuality } from "./image-types";
+import type { ImageProviderId } from "./image-types";
 
 /** Inclusive numeric bounds for one parameter, as declared by the schema. */
 export interface ParamBounds {
@@ -53,6 +54,8 @@ export interface ImageModelGuidanceConfig {
 export interface ImageModelRegistryEntry {
   /** Workers AI model id, e.g. `@cf/black-forest-labs/flux-2-klein-9b`. */
   id: string;
+  /** Explicit for current entries; legacy Cloudflare entries omit it. */
+  provider?: ImageProviderId;
   label: string;
   description: string;
   badges: readonly string[];
@@ -138,6 +141,119 @@ const SD_GUIDANCE: ImageModelGuidanceConfig = {
  *   FLUX 2 Klein → FLUX Schnell → FLUX 2 Dev → SDXL Lightning → …
  */
 const REGISTRY_ENTRIES: readonly ImageModelRegistryEntry[] = [
+  {
+    id: "@cf/black-forest-labs/flux-1-schnell",
+    provider: "cloudflare",
+    label: "FLUX Schnell",
+    description: "Fast Cloudflare image generation.",
+    badges: ["Cloudflare", "Fast"],
+    priority: 1,
+    inputMode: "json",
+    params: ["prompt", "steps"],
+    bounds: { steps: { min: 1, max: 8 } },
+    nativeSize: { width: 1024, height: 1024 },
+    steps: { param: "steps", byQuality: { fast: 4, balanced: 6, high: 8 } },
+    maxImages: 4,
+    estimatedCost: 0,
+  },
+  {
+    id: "@cf/black-forest-labs/flux-1-dev",
+    provider: "cloudflare",
+    label: "FLUX Dev",
+    description: "High-quality Cloudflare image generation.",
+    badges: ["Cloudflare"],
+    priority: 2,
+    inputMode: "json",
+    params: ["prompt"],
+    bounds: {},
+    nativeSize: { width: 1024, height: 1024 },
+    maxImages: 4,
+    estimatedCost: 0,
+  },
+  {
+    id: "@cf/black-forest-labs/flux-1-kontext-dev",
+    provider: "cloudflare",
+    label: "FLUX Kontext Dev",
+    description: "Cloudflare context-aware image generation.",
+    badges: ["Cloudflare", "Edit"],
+    priority: 3,
+    inputMode: "json",
+    params: ["prompt"],
+    bounds: {},
+    nativeSize: { width: 1024, height: 1024 },
+    maxImages: 4,
+    estimatedCost: 0,
+  },
+  {
+    id: "@cf/black-forest-labs/flux-1-kontext-max",
+    provider: "cloudflare",
+    label: "FLUX Kontext Max",
+    description: "Highest-quality Cloudflare context image generation.",
+    badges: ["Cloudflare", "Premium"],
+    priority: 4,
+    inputMode: "json",
+    params: ["prompt"],
+    bounds: {},
+    nativeSize: { width: 1024, height: 1024 },
+    maxImages: 4,
+    estimatedCost: 0,
+  },
+  {
+    id: "x-ai/grok-imagine-image-2.0",
+    provider: "openrouter",
+    label: "Grok Imagine Image",
+    description: "OpenRouter image generation by xAI.",
+    badges: ["OpenRouter"],
+    priority: 101,
+    inputMode: "json",
+    params: ["prompt", "aspect_ratio", "quality", "resolution"],
+    bounds: {},
+    nativeSize: { width: 1024, height: 1024 },
+    maxImages: 1,
+    estimatedCost: 0,
+  },
+  {
+    id: "black-forest-labs/flux.2-max",
+    provider: "openrouter",
+    label: "FLUX 2 Max",
+    description: "OpenRouter FLUX image generation.",
+    badges: ["OpenRouter"],
+    priority: 102,
+    inputMode: "json",
+    params: ["prompt", "aspect_ratio", "seed"],
+    bounds: { seed: { min: 0 } },
+    nativeSize: { width: 1024, height: 1024 },
+    maxImages: 1,
+    estimatedCost: 0,
+  },
+  {
+    id: "google/gemini-3.1-flash-lite-image",
+    provider: "openrouter",
+    label: "Gemini Flash Lite Image",
+    description: "OpenRouter Gemini image generation.",
+    badges: ["OpenRouter"],
+    priority: 103,
+    inputMode: "json",
+    params: ["prompt", "resolution"],
+    bounds: {},
+    nativeSize: { width: 1024, height: 1024 },
+    maxImages: 1,
+    estimatedCost: 0,
+  },
+  {
+    id: "qwen/qwen-image-3-pro",
+    provider: "openrouter",
+    label: "Qwen Image 3 Pro",
+    description: "OpenRouter Qwen image generation.",
+    badges: ["OpenRouter"],
+    priority: 104,
+    inputMode: "json",
+    params: ["prompt", "resolution", "seed"],
+    bounds: { seed: { min: 0 } },
+    nativeSize: { width: 1024, height: 1024 },
+    maxImages: 1,
+    estimatedCost: 0,
+  },
   {
     id: "@cf/black-forest-labs/flux-2-klein-9b",
     label: "FLUX 2 Klein",
@@ -294,7 +410,12 @@ const REGISTRY_ENTRIES: readonly ImageModelRegistryEntry[] = [
 
 /** Every registered model, in fallback order. */
 export const IMAGE_MODEL_REGISTRY: readonly ImageModelRegistryEntry[] = Object.freeze(
-  [...REGISTRY_ENTRIES].sort((a, b) => a.priority - b.priority),
+  // Entries without an explicit provider are retired legacy definitions. Keeping
+  // them above temporarily preserves git history while ensuring they cannot be
+  // routed, displayed, or accepted by the API.
+  [...REGISTRY_ENTRIES]
+    .filter((entry) => entry.provider !== undefined)
+    .sort((a, b) => a.priority - b.priority),
 );
 
 /** Cached metadata lookups so hot paths never rescan the registry. */
@@ -326,6 +447,12 @@ export function isRegisteredImageModel(id?: string | null): boolean {
 export function getImageModelLabel(id?: string | null): string {
   if (!id) return "Unknown model";
   return BY_ID.get(id)?.label ?? id;
+}
+
+/** Provider ownership comes from the registry; legacy entries are Cloudflare. */
+export function getImageModelProvider(id: string): ImageProviderId | undefined {
+  const entry = BY_ID.get(id);
+  return entry ? (entry.provider ?? "cloudflare") : undefined;
 }
 
 /** The parameter allow-list for a model, as a cached `Set`. */

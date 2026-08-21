@@ -145,12 +145,12 @@ describe("provider fallback and authentication handling", () => {
       ...baseOpts,
       gateway,
       state,
-      // "reasoning" puts OpenAI first, so this exercises the OpenAI -> OpenRouter hop.
+      // The global policy keeps Gemini -> OpenAI -> OpenRouter, including reasoning.
       mode: "reasoning",
     });
 
     expect(result.provider).toBe("openrouter");
-    expect(calls[0].provider).toBe("openai");
+    expect(calls[0].provider).toBe("gemini");
     expect(calls.filter((c) => c.provider === "openai")).toHaveLength(1);
     expect(attemptedProviders(calls)).toContain("openrouter");
   });

@@ -12,7 +12,8 @@ const TOKEN_ENV = "CLOUDFLARE_API_TOKEN";
 const MODEL_ENV = "CLOUDFLARE_IMAGE_MODEL";
 
 /**
- * Phase 5: verify CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN are present.
+ * Verify that at least one image provider is configured. Cloudflare is preferred,
+ * but OpenRouter remains a valid automatic fallback when Cloudflare is absent.
  *
  * @returns an {@link ImageGenerationError} (MISSING_CREDENTIALS, not recoverable)
  *   when configuration is incomplete, otherwise `null`.
@@ -21,11 +22,11 @@ export function getImageEnvironmentError(): ImageGenerationError | null {
   const missing: string[] = [];
   if (!readEnvApiKey(ACCOUNT_ENV)) missing.push(ACCOUNT_ENV);
   if (!readEnvApiKey(TOKEN_ENV)) missing.push(TOKEN_ENV);
-  if (missing.length === 0) return null;
-  return new ImageGenerationError("MISSING_CREDENTIALS", "Cloudflare configuration missing.", {
+  if (missing.length === 0 || readEnvApiKey("OPENROUTER_API_KEY")) return null;
+  return new ImageGenerationError("MISSING_CREDENTIALS", "Image generation is not configured.", {
     status: 503,
     recoverable: false,
-    hint: `Set ${missing.join(", ")} on the server.`,
+    hint: `Set ${missing.join(", ")} or OPENROUTER_API_KEY on the server.`,
   });
 }
 

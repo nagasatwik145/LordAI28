@@ -163,11 +163,11 @@ export const IMAGE_MODELS: readonly ImageModelDefinition[] = [
   // OpenRouter Images
   // -----------------------------
   {
-    id: "black-forest-labs/flux.1-dev",
+    id: "x-ai/grok-imagine-image-2.0",
     provider: "openrouter",
     supports: ["image"],
-    label: "FLUX.1 Dev",
-    description: "OpenRouter FLUX image generation.",
+    label: "Grok Imagine Image",
+    description: "OpenRouter image generation by xAI.",
     badges: ["OpenRouter"],
     maxWidth: 2048,
     maxHeight: 2048,
@@ -180,11 +180,11 @@ export const IMAGE_MODELS: readonly ImageModelDefinition[] = [
   },
 
   {
-    id: "black-forest-labs/flux.1-schnell",
+    id: "black-forest-labs/flux.2-max",
     provider: "openrouter",
     supports: ["image"],
-    label: "FLUX.1 Schnell",
-    description: "Fast FLUX generation via OpenRouter.",
+    label: "FLUX 2 Max",
+    description: "OpenRouter FLUX image generation.",
     badges: ["OpenRouter", "Fast"],
     maxWidth: 2048,
     maxHeight: 2048,
@@ -197,11 +197,11 @@ export const IMAGE_MODELS: readonly ImageModelDefinition[] = [
   },
 
   {
-    id: "qwen/qwen-image-3",
+    id: "google/gemini-3.1-flash-lite-image",
     provider: "openrouter",
     supports: ["image"],
-    label: "Qwen Image 3",
-    description: "Detailed illustrations and creative artwork.",
+    label: "Gemini Flash Lite Image",
+    description: "OpenRouter Gemini image generation.",
     badges: ["OpenRouter", "Creative"],
     maxWidth: 2048,
     maxHeight: 2048,
@@ -214,11 +214,11 @@ export const IMAGE_MODELS: readonly ImageModelDefinition[] = [
   },
 
   {
-    id: "x-ai/grok-image",
+    id: "qwen/qwen-image-3-pro",
     provider: "openrouter",
     supports: ["image"],
-    label: "Grok Image",
-    description: "xAI image generation through OpenRouter.",
+    label: "Qwen Image 3 Pro",
+    description: "OpenRouter Qwen image generation.",
     badges: ["OpenRouter", "Creative"],
     maxWidth: 2048,
     maxHeight: 2048,
@@ -251,7 +251,7 @@ export const PROVIDER_CONFIG: Record<
 > = {
   gemini: {
     apiKeyEnv: "GEMINI_API_KEY",
-    models: ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash", "gemini-1.5-pro"],
+    models: ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"],
   },
 
   openai: {
@@ -288,8 +288,8 @@ export const LORD_MODELS: Record<LordMode, readonly Candidate[]> = {
   // ⚡ Fastest response
   fast: [
     candidate("gemini", "gemini-2.5-flash-lite"),
-    candidate("openrouter", "google/gemma-3-27b-it:free"),
     candidate("openai", "gpt-4o-mini"),
+    candidate("openrouter", "google/gemma-3-27b-it:free"),
   ],
 
   // 💬 Best everyday assistant
@@ -301,16 +301,16 @@ export const LORD_MODELS: Record<LordMode, readonly Candidate[]> = {
 
   // 🧠 Strong reasoning
   reasoning: [
+    candidate("gemini", "gemini-2.5-flash"),
     candidate("openai", "gpt-4o"),
-    candidate("gemini", "gemini-1.5-pro"),
     candidate("openrouter", "meta-llama/llama-3.3-70b-instruct:free"),
     candidate("openrouter", "openai/gpt-oss-20b:free"),
   ],
 
   // 💻 Coding
   coding: [
-    candidate("openai", "gpt-4o"),
     candidate("gemini", "gemini-2.5-flash"),
+    candidate("openai", "gpt-4o"),
     candidate("openrouter", "openai/gpt-oss-20b:free"),
     candidate("openrouter", "google/gemma-4-31b-it:free"),
   ],
@@ -325,9 +325,9 @@ export const LORD_MODELS: Record<LordMode, readonly Candidate[]> = {
 
   // 🪶 Cheapest / fallback
   local: [
-    candidate("openrouter", "google/gemma-3-27b-it:free"),
     candidate("gemini", "gemini-2.5-flash-lite"),
     candidate("openai", "gpt-4o-mini"),
+    candidate("openrouter", "google/gemma-3-27b-it:free"),
   ],
 };
 

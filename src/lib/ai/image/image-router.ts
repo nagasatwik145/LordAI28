@@ -13,7 +13,9 @@ import {
   getImageModel,
   getImageModelLabel,
   resolveConfiguredModelId,
+  getImageModelProvider,
 } from "./image-models";
+import { generateOpenRouterImage } from "./openrouter-image-provider";
 import { resolveModelDimensions } from "./image-capabilities";
 import { getCachedImageHealth } from "./image-health";
 import { enhanceImagePrompt } from "./image-prompt";
@@ -126,11 +128,21 @@ export async function routeImageRequest(
   const finalPrompt = enhanced.prompt;
 
   const configuredModel = resolveConfiguredModelId(process.env.CLOUDFLARE_IMAGE_MODEL).id;
-  const chain = buildFallbackChain({
-    requested: requestedModel,
+  const allCandidates = buildFallbackChain({
     preferred: configuredModel,
     isSelectable: selectableFilter(),
   });
+  // Cloudflare is always preferred. OpenRouter is reached only after every
+  // Cloudflare candidate failed, even if a previous request selected it.
+  const chain = [
+    ...allCandidates.filter((entry) => getImageModelProvider(entry.id) === "cloudflare"),
+    ...(requestedModel && getImageModelProvider(requestedModel) === "openrouter"
+      ? allCandidates.filter((entry) => entry.id === requestedModel)
+      : []),
+    ...allCandidates.filter(
+      (entry) => getImageModelProvider(entry.id) === "openrouter" && entry.id !== requestedModel,
+    ),
+  ];
 
   const attempts: ImageAttempt[] = [];
   const images: string[] = [];
@@ -160,7 +172,10 @@ export async function routeImageRequest(
 
     let first: ProviderGenerateResult;
     try {
-      first = await cloudflareImageProvider.generate(genRequest);
+      first =
+        getImageModelProvider(entry.id) === "openrouter"
+          ? await generateOpenRouterImage(genRequest)
+          : await cloudflareImageProvider.generate(genRequest);
     } catch (error) {
       attempts.push(makeFailureAttempt(entry.id, entry.label, toGenerationError(error, requestId)));
       continue;
@@ -176,7 +191,10 @@ export async function routeImageRequest(
         seed: request.seed ?? Math.floor(Math.random() * 4_294_967_295),
       };
       try {
-        const extra = await cloudflareImageProvider.generate(repeat);
+        const extra =
+          getImageModelProvider(entry.id) === "openrouter"
+            ? await generateOpenRouterImage(repeat)
+            : await cloudflareImageProvider.generate(repeat);
         images.push(...extra.images);
         totalRetries += extra.retryCount;
         attempts.push(makeSuccessAttempt(entry.id, entry.label, extra));
@@ -208,8 +226,9 @@ export async function routeImageRequest(
   });
 
   return {
-    provider: IMAGE_PROVIDER_ID,
-    providerLabel: IMAGE_PROVIDER_LABEL,
+    provider: getImageModelProvider(usedModel) ?? IMAGE_PROVIDER_ID,
+    providerLabel:
+      getImageModelProvider(usedModel) === "openrouter" ? "OpenRouter" : IMAGE_PROVIDER_LABEL,
     requestId,
     model: usedModel,
     modelLabel: getImageModelLabel(usedModel),

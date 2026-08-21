@@ -15,14 +15,12 @@ describe("image model registry", () => {
     const sorted = [...priorities].sort((a, b) => a - b);
     expect(priorities).toEqual(sorted);
     expect(IMAGE_MODEL_REGISTRY[0].id).toBe(DEFAULT_IMAGE_MODEL_ID);
-    // FLUX 2 Klein is the documented head of the chain.
-    expect(DEFAULT_IMAGE_MODEL_ID).toBe("@cf/black-forest-labs/flux-2-klein-9b");
+    expect(DEFAULT_IMAGE_MODEL_ID).toBe("@cf/black-forest-labs/flux-1-schnell");
   });
 
-  it("only contains Cloudflare models", () => {
-    for (const model of IMAGE_MODEL_REGISTRY) {
-      expect(model.id.startsWith("@cf/")).toBe(true);
-    }
+  it("contains the supported Cloudflare-first, OpenRouter-fallback registry", () => {
+    expect(IMAGE_MODEL_REGISTRY.filter((m) => m.provider === "cloudflare")).toHaveLength(4);
+    expect(IMAGE_MODEL_REGISTRY.filter((m) => m.provider === "openrouter")).toHaveLength(4);
   });
 
   it("rejects unknown model ids but keeps a registered one", () => {
@@ -35,19 +33,19 @@ describe("image model registry", () => {
     const resolved = resolveConfiguredModelId("not-a-real-model");
     expect(resolved.id).toBe(DEFAULT_IMAGE_MODEL_ID);
     expect(resolved.warning).toBeTruthy();
-    expect(resolveConfiguredModelId("@cf/bytedance/stable-diffusion-xl-lightning").id).toBe(
-      "@cf/bytedance/stable-diffusion-xl-lightning",
+    expect(resolveConfiguredModelId("@cf/black-forest-labs/flux-1-dev").id).toBe(
+      "@cf/black-forest-labs/flux-1-dev",
     );
   });
 
-  it("builds a Cloudflare-only fallback chain with no duplicates", () => {
-    const chain = buildFallbackChain({ requested: "@cf/leonardo/phoenix-1.0" });
+  it("builds a provider-aware fallback chain with no duplicates", () => {
+    const chain = buildFallbackChain({ requested: "qwen/qwen-image-3-pro" });
     const ids = chain.map((m) => m.id);
     expect(new Set(ids).size).toBe(ids.length);
-    expect(chain.some((m) => m.id === "@cf/leonardo/phoenix-1.0")).toBe(true);
-    expect(chain.every((m) => m.id.startsWith("@cf/"))).toBe(true);
+    expect(chain.some((m) => m.id === "qwen/qwen-image-3-pro")).toBe(true);
+    expect(chain.some((m) => m.provider === "cloudflare")).toBe(true);
     // Requested model is attempted first.
-    expect(chain[0].id).toBe("@cf/leonardo/phoenix-1.0");
+    expect(chain[0].id).toBe("qwen/qwen-image-3-pro");
   });
 
   it("exposes a sane selectable chain when a health filter disqualifies everything", () => {

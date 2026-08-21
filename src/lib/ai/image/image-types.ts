@@ -8,8 +8,8 @@
 import type { ImageErrorCode } from "./image-errors";
 import type { ImagePromptProfile } from "./image-prompt";
 
-/** The only image provider LORD supports. */
-export type ImageProviderId = "cloudflare";
+/** Providers permitted to serve images. Text providers are deliberately absent. */
+export type ImageProviderId = "cloudflare" | "openrouter";
 
 export const IMAGE_PROVIDER_ID: ImageProviderId = "cloudflare";
 export const IMAGE_PROVIDER_LABEL = "Cloudflare Workers AI";
