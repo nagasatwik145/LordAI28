@@ -28,7 +28,6 @@ import {
   getModeCandidates,
   resolveCandidate,
   buildAllCandidates,
-  IMAGE_MODELS,
 } from "./lord-config";
 import { GATEWAY_CONFIG } from "./gateway-config";
 import { createHealthCache, type HealthCacheEntry, type HealthCache } from "./provider-health";
@@ -906,15 +905,9 @@ export function logStartupBanner(
     circuitBreakerEntries: infra.circuitBreaker.getAll().length,
     preferredModels,
   });
-  const imageModels = IMAGE_MODELS.map((model) => {
-    const health = infra.healthCache.get(model.provider, model.id);
-    return {
-      model: model.label,
-      id: model.id,
-      status: health?.status ?? (state.meta[model.provider].hasKey ? "ready" : "missing_api_key"),
-    };
-  });
-  infra.logger.info("lord_active_image_configuration", { imageModels });
+  // Image generation runs exclusively on Cloudflare Workers AI; its health is
+  // reported separately at startup by the image pipeline (see ensureImageHealth).
+  infra.logger.info("lord_active_image_configuration", { imageProvider: "cloudflare" });
 }
 
 // ---------------------------------------------------------------------------

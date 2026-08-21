@@ -3,6 +3,13 @@ import { PROVIDER_CONFIG, type ProviderName } from "./lord-config";
 
 export type LogLevel = "debug" | "info" | "warn" | "error";
 
+const LEVEL_WEIGHT: Record<LogLevel, number> = {
+  debug: 10,
+  info: 20,
+  warn: 30,
+  error: 40,
+};
+
 export interface Logger {
   debug(event: string, payload: Record<string, unknown>): void;
   info(event: string, payload: Record<string, unknown>): void;
@@ -29,12 +36,17 @@ export interface Logger {
 export function createLogger(config: GatewayConfig): Logger {
   const prefix = "[lord-gateway]";
 
+  // Minimum level that is actually emitted. Set from config so production can
+  // suppress high-volume debug/info logs while still surfacing warnings/errors.
+  const LOG_THRESHOLD: number = LEVEL_WEIGHT[config.logLevel] ?? LEVEL_WEIGHT.info;
+
   function formatPayload(payload: Record<string, unknown>): Record<string, unknown> {
     const out: Record<string, unknown> = { ...payload, timestamp: Date.now() };
     return out;
   }
 
   function emit(level: LogLevel, event: string, payload: Record<string, unknown>) {
+    if (LEVEL_WEIGHT[level] < LOG_THRESHOLD) return;
     const formatted = formatPayload(payload);
     if (config.logFormat === "pretty") {
       const lines = [

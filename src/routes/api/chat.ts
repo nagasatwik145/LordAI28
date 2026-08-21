@@ -67,7 +67,12 @@ function sanitizeProviderMessage(message?: string): string | undefined {
   return trimmed;
 }
 
+// Verbose per-request tracing. Suppressed in production unless LORD_CHAT_DEBUG
+// is set, so we never leak request previews / diagnostics into prod logs.
+const CHAT_DEBUG = process.env.LORD_CHAT_DEBUG === "true";
+
 function logChat(event: string, payload: Record<string, unknown>) {
+  if (!CHAT_DEBUG) return;
   console.info(JSON.stringify({ event, ...payload }));
 }
 
@@ -85,6 +90,7 @@ interface LatencyMeasurement {
 }
 
 function logLatency(m: LatencyMeasurement) {
+  if (!CHAT_DEBUG) return;
   console.info(JSON.stringify(m));
 }
 
@@ -316,7 +322,9 @@ export const Route = createFileRoute("/api/chat")({
 
         // Run lightweight startup validation in the background so the first
         // real request benefits from it without blocking the user. Subsequent
-        // requests reuse the cached result.
+        // requests reuse the cached result. Seed the per-mode probe cache once
+        // validation learns provider health, so following requests skip the
+        // pre-flight probe and start streaming immediately.
         getStartupValidation(lordState).catch(() => {
           // Startup validation is best-effort; never block the chat endpoint.
         });

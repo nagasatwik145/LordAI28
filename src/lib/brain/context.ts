@@ -20,6 +20,34 @@ const TASK_LIMIT = 3;
 const TOKEN_BUDGET = 1200;
 const CHUNK_TOKENS = 120;
 
+// Contextual data (memories, knowledge, recent chats, notes, tasks) changes
+// infrequently but was previously re-fetched from Supabase on EVERY chat
+// message as a chain of sequential queries. We cache the raw results per
+// (user, project, options) for a short window so rapid follow-up messages skip
+// the DB fan-out. The query-specific embedding/scoring still runs each time, so
+// relevance is preserved.
+const BRAIN_CACHE_TTL_MS = 30_000;
+
+interface BrainCacheEntry {
+  ts: number;
+  memoryRows: Awaited<ReturnType<typeof fetchMemories>>;
+  knowledge: Awaited<ReturnType<typeof fetchKnowledgeChunks>>;
+  chats: Awaited<ReturnType<typeof fetchRecentChats>>;
+  notes: Awaited<ReturnType<typeof fetchPinnedNotes>>;
+  tasks: Awaited<ReturnType<typeof fetchRecentTasks>>;
+}
+
+const brainCache = new Map<string, BrainCacheEntry>();
+
+function brainCacheKey(
+  userId: string,
+  projectId: string | null | undefined,
+  includePinnedNotes: boolean,
+  includeRecentTasks: boolean,
+): string {
+  return `${userId}:${projectId ?? ""}:${includePinnedNotes ? 1 : 0}:${includeRecentTasks ? 1 : 0}`;
+}
+
 function estimateTokens(s: string): number {
   return Math.ceil(s.length / 4);
 }
@@ -51,7 +79,42 @@ export async function buildBrainContext(options: BrainContextOptions): Promise<B
 
   let usedTokens = 0;
 
-  const memoryRows = await fetchMemories(supabase, userId, projectId, maxMemories * 2);
+  let memoryRows: Awaited<ReturnType<typeof fetchMemories>> = [];
+  let knowledge: Awaited<ReturnType<typeof fetchKnowledgeChunks>> = [];
+  let chats: Awaited<ReturnType<typeof fetchRecentChats>> = [];
+  let notes: Awaited<ReturnType<typeof fetchPinnedNotes>> = [];
+  let tasks: Awaited<ReturnType<typeof fetchRecentTasks>> = [];
+
+  const cacheKey = brainCacheKey(userId, projectId, includePinnedNotes, includeRecentTasks);
+  const cached = brainCache.get(cacheKey);
+  if (cached && Date.now() - cached.ts < BRAIN_CACHE_TTL_MS) {
+    memoryRows = cached.memoryRows;
+    knowledge = cached.knowledge;
+    chats = cached.chats;
+    notes = cached.notes;
+    tasks = cached.tasks;
+  } else {
+    // These five lookups are independent, so run them concurrently instead of
+    // in a chain. This roughly halves the context-assembly latency.
+    const [memResult, knowResult, chatResult, noteResult, taskResult] = await Promise.all([
+      fetchMemories(supabase, userId, projectId, maxMemories * 2),
+      fetchKnowledgeChunks(supabase, userId, projectId, maxKnowledgeChunks * 2),
+      fetchRecentChats(supabase, userId, projectId, maxRecentChats),
+      includePinnedNotes
+        ? fetchPinnedNotes(supabase, userId, projectId, NOTE_LIMIT)
+        : Promise.resolve([] as Awaited<ReturnType<typeof fetchPinnedNotes>>),
+      includeRecentTasks
+        ? fetchRecentTasks(supabase, userId, projectId, TASK_LIMIT)
+        : Promise.resolve([] as Awaited<ReturnType<typeof fetchRecentTasks>>),
+    ]);
+    memoryRows = memResult;
+    knowledge = knowResult;
+    chats = chatResult;
+    notes = noteResult;
+    tasks = taskResult;
+    brainCache.set(cacheKey, { ts: Date.now(), memoryRows, knowledge, chats, notes, tasks });
+  }
+
   const memoryRecords: MemoryRecord[] = memoryRows.map((r) => ({
     id: r.id,
     user_id: r.user_id,
@@ -93,7 +156,6 @@ export async function buildBrainContext(options: BrainContextOptions): Promise<B
     usedTokens += tokens;
   }
 
-  const knowledge = await fetchKnowledgeChunks(supabase, userId, projectId, maxKnowledgeChunks * 2);
   const queryVec = await embedQueryVector(query);
   const scoredChunks = queryVec
     ? knowledge
@@ -123,7 +185,6 @@ export async function buildBrainContext(options: BrainContextOptions): Promise<B
     usedTokens += tokens;
   }
 
-  const chats = await fetchRecentChats(supabase, userId, projectId, maxRecentChats);
   for (const chat of chats) {
     const snippet = truncate(chat.lastMessage ?? chat.title ?? "", 80);
     const tokens = estimateTokens(snippet) + 10;
@@ -138,7 +199,6 @@ export async function buildBrainContext(options: BrainContextOptions): Promise<B
   }
 
   if (includePinnedNotes) {
-    const notes = await fetchPinnedNotes(supabase, userId, projectId, NOTE_LIMIT);
     for (const note of notes) {
       const snippet = truncate(note.content, 80);
       const tokens = estimateTokens(snippet) + 10;
@@ -154,7 +214,6 @@ export async function buildBrainContext(options: BrainContextOptions): Promise<B
   }
 
   if (includeRecentTasks) {
-    const tasks = await fetchRecentTasks(supabase, userId, projectId, TASK_LIMIT);
     for (const task of tasks) {
       const snippet = truncate(task.title + (task.description ? `: ${task.description}` : ""), 60);
       const tokens = estimateTokens(snippet) + 8;

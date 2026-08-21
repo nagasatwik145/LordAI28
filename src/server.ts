@@ -60,23 +60,14 @@ console.info(
 // Startup diagnostics: Gemini / OpenAI / OpenRouter configured or not.
 logProviderConfigurationDiagnostics();
 
-// Image pipeline startup validation: verify every configured image model
-// against the live OpenRouter catalog, disable broken models, and print a
-// health report. Runs async so it never blocks boot; failures are logged but
-// never crash the server.
-void import("./lib/image-gateway.server")
-  .then(({ validateImageModelsAtStartup, getImageCredentialDiagnostics }) => {
-    const creds = getImageCredentialDiagnostics();
-    for (const c of creds) {
-      if (c.status === "missing" || c.status === "invalid") {
-        console.warn(`[image-credentials] ${c.provider}: ${c.message}`);
-      }
-    }
-    return validateImageModelsAtStartup();
-  })
+// Image pipeline startup check: verify Cloudflare credentials and per-model
+// availability, and print a health report. Runs async so it never blocks boot;
+// failures are logged but never crash the server.
+void import("./lib/ai/image/image-health")
+  .then(({ ensureImageHealth }) => ensureImageHealth())
   .catch((error) => {
     console.error(
-      "[image-startup] image model validation failed to run:",
+      "[image-startup] Cloudflare image health check failed to run:",
       error instanceof Error ? error.message : String(error),
     );
   });

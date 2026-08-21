@@ -65,6 +65,12 @@ export const MODEL_STATS_MAX_SAMPLES = 100;
 
 export const LOG_FORMAT = "json" as const;
 
+// Production should surface errors/warnings, not per-request debug/info noise.
+// Override with LORD_LOG_LEVEL (e.g. "debug", "info", "warn", "error").
+const RESOLVED_LOG_LEVEL =
+  (process.env.LORD_LOG_LEVEL as "debug" | "info" | "warn" | "error" | undefined) ??
+  (process.env.NODE_ENV === "production" ? "warn" : "debug");
+
 export const ERROR_REASON_LABELS: Record<string, string> = {
   invalid_api_key: "Invalid API key",
   malformed_request: "Malformed request",
@@ -146,6 +152,7 @@ export type GatewayConfig = {
   modelStatsEnabled: boolean;
   modelStatsMaxSamples: number;
   logFormat: "json" | "pretty";
+  logLevel: "debug" | "info" | "warn" | "error";
   errorReasonLabels: Record<string, string>;
 };
 
@@ -174,5 +181,6 @@ export const GATEWAY_CONFIG: GatewayConfig = {
   modelStatsEnabled: MODEL_STATS_ENABLED,
   modelStatsMaxSamples: MODEL_STATS_MAX_SAMPLES,
   logFormat: LOG_FORMAT,
+  logLevel: RESOLVED_LOG_LEVEL,
   errorReasonLabels: ERROR_REASON_LABELS,
 };

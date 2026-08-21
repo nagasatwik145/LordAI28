@@ -50,8 +50,15 @@ import {
   Pin,
   Target,
   Calendar,
+  Image as ImageIcon,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import {
+  getImageGenDefaults,
+  setImageGenDefaults,
+  type ImageSizePreset,
+} from "@/lib/image-settings";
+import { IMAGE_MODEL_REGISTRY, DEFAULT_IMAGE_MODEL_ID } from "@/lib/ai/image";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({ meta: [{ title: "LORD — Settings" }] }),
@@ -221,6 +228,7 @@ function SettingsPage() {
   const [autoSpeak, setAutoSpeak] = useState(true);
   const [notifications, setNotifications] = useState(true);
   const [theme, setTheme] = useState("dark");
+  const [imgDefaults, setImgDefaults] = useState(getImageGenDefaults());
 
   useEffect(() => {
     if (!data || typeof data === "string") return;
@@ -523,6 +531,131 @@ function SettingsPage() {
                     </div>
                   ))}
                 </div>
+              </div>
+            </CollapsibleCard>
+
+            {/* Image Providers */}
+            <CollapsibleCard
+              storageKey="lord.settings.image-providers"
+              defaultOpen={false}
+              icon={ImageIcon}
+              title="Image Providers"
+              subtitle="Default image generation behavior"
+              summary={`Provider: Cloudflare · ${imgDefaults.defaultResolution} · ${imgDefaults.defaultAspectRatio}`}
+            >
+              <div className="relative space-y-4">
+                <div>
+                  <p className="mb-1 text-xs uppercase tracking-wider text-muted-foreground">
+                    Default Provider
+                  </p>
+                  <select
+                    value="cloudflare"
+                    disabled
+                    className="w-full rounded-md border border-border/40 bg-background/30 px-3 py-2 text-sm opacity-70"
+                  >
+                    <option value="cloudflare">Cloudflare Workers AI</option>
+                  </select>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <p className="mb-1 text-xs uppercase tracking-wider text-muted-foreground">
+                      Default Model
+                    </p>
+                    <select
+                      value={imgDefaults.defaultModel || DEFAULT_IMAGE_MODEL_ID}
+                      onChange={(e) =>
+                        setImgDefaults(setImageGenDefaults({ defaultModel: e.target.value }))
+                      }
+                      className="w-full rounded-md border border-border/40 bg-background/30 px-3 py-2 text-sm"
+                    >
+                      <option value={DEFAULT_IMAGE_MODEL_ID}>Default (auto)</option>
+                      {IMAGE_MODEL_REGISTRY.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <p className="mb-1 text-xs uppercase tracking-wider text-muted-foreground">
+                      Default Resolution
+                    </p>
+                    <select
+                      value={imgDefaults.defaultResolution}
+                      onChange={(e) =>
+                        setImgDefaults(
+                          setImageGenDefaults({
+                            defaultResolution: e.target.value as ImageSizePreset,
+                          }),
+                        )
+                      }
+                      className="w-full rounded-md border border-border/40 bg-background/30 px-3 py-2 text-sm"
+                    >
+                      <option value="square">Square</option>
+                      <option value="portrait">Portrait</option>
+                      <option value="landscape">Landscape</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <p className="mb-1 text-xs uppercase tracking-wider text-muted-foreground">
+                      Default Aspect Ratio
+                    </p>
+                    <select
+                      value={imgDefaults.defaultAspectRatio}
+                      onChange={(e) =>
+                        setImgDefaults(setImageGenDefaults({ defaultAspectRatio: e.target.value }))
+                      }
+                      className="w-full rounded-md border border-border/40 bg-background/30 px-3 py-2 text-sm"
+                    >
+                      {["1:1", "16:9", "9:16", "4:3", "3:4"].map((r) => (
+                        <option key={r} value={r}>
+                          {r}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <p className="mb-1 text-xs uppercase tracking-wider text-muted-foreground">
+                      Default Image Count
+                    </p>
+                    <select
+                      value={imgDefaults.defaultImageCount}
+                      onChange={(e) =>
+                        setImgDefaults(
+                          setImageGenDefaults({ defaultImageCount: Number(e.target.value) }),
+                        )
+                      }
+                      className="w-full rounded-md border border-border/40 bg-background/30 px-3 py-2 text-sm"
+                    >
+                      {[1, 2, 3, 4].map((n) => (
+                        <option key={n} value={n}>
+                          {n}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <label className="flex items-center gap-2 text-sm text-foreground/90">
+                  <input
+                    type="checkbox"
+                    checked={imgDefaults.enhancePrompt}
+                    onChange={(e) =>
+                      setImgDefaults(setImageGenDefaults({ enhancePrompt: e.target.checked }))
+                    }
+                  />
+                  Enhance prompts by default
+                </label>
+
+                <p className="text-[10px] text-muted-foreground">
+                  The Cloudflare provider is configured server-side via CLOUDFLARE_ACCOUNT_ID and
+                  CLOUDFLARE_API_TOKEN. Add OpenAI, Gemini, or other providers by registering a new
+                  provider adapter — no UI changes required.
+                </p>
               </div>
             </CollapsibleCard>
 

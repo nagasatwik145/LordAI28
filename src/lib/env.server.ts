@@ -21,6 +21,8 @@ export const PROVIDER_ENV_KEYS = [
   "GEMINI_API_KEY",
   "OPENAI_API_KEY",
   "OPENROUTER_API_KEY",
+  "CLOUDFLARE_ACCOUNT_ID",
+  "CLOUDFLARE_API_TOKEN",
 ] as const;
 export type ProviderEnvKey = (typeof PROVIDER_ENV_KEYS)[number];
 
@@ -29,6 +31,9 @@ const CLIENT_LEAK_ENV_KEYS = [
   "VITE_GEMINI_API_KEY",
   "VITE_OPENAI_API_KEY",
   "VITE_OPENROUTER_API_KEY",
+  // Cloudflare image credentials must stay server-side only.
+  "VITE_CLOUDFLARE_API_TOKEN",
+  "VITE_CLOUDFLARE_ACCOUNT_ID",
 ] as const;
 
 export interface EnvKeySummary {

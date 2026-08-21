@@ -103,7 +103,7 @@ export const IMAGE_MODELS: readonly ImageModelDefinition[] = [
   },
   {
     id: "black-forest-labs/flux.2-max",
-    provider: "openrouter",
+    provider: "cloudflare",
     supports: ["image"],
     label: "FLUX 2 Max",
     description: "High-fidelity contextual and photorealistic imagery.",
@@ -121,7 +121,7 @@ export const IMAGE_MODELS: readonly ImageModelDefinition[] = [
   },
   {
     id: "google/gemini-3.1-flash-lite-image",
-    provider: "openrouter",
+    provider: "cloudflare",
     supports: ["image"],
     label: "Nano Banana Lite",
     description: "Google's quick, efficient image model.",
@@ -134,7 +134,7 @@ export const IMAGE_MODELS: readonly ImageModelDefinition[] = [
   },
   {
     id: "qwen/qwen-image-3-pro",
-    provider: "openrouter",
+    provider: "cloudflare",
     supports: ["image"],
     label: "Qwen Image 3 Pro",
     description: "Detailed composition and illustrated image generation.",

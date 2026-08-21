@@ -1,4 +1,4 @@
-import type { ImageGatewaySelection } from "@/lib/image-gateway-client";
+import type { ImageProviderId } from "@/lib/ai/image";
 
 /**
  * Local, per-user defaults for image generation.
@@ -13,7 +13,7 @@ import type { ImageGatewaySelection } from "@/lib/image-gateway-client";
 export type ImageSizePreset = "square" | "portrait" | "landscape";
 
 export interface ImageGenDefaults {
-  defaultProvider: ImageGatewaySelection;
+  defaultProvider: ImageProviderId;
   defaultModel: string;
   defaultResolution: ImageSizePreset;
   defaultAspectRatio: string;
@@ -25,7 +25,7 @@ export interface ImageGenDefaults {
 const STORAGE_KEY = "lord.image-gen.defaults";
 
 export const DEFAULT_IMAGE_GEN: ImageGenDefaults = {
-  defaultProvider: "auto",
+  defaultProvider: "cloudflare",
   defaultModel: "",
   defaultResolution: "square",
   defaultAspectRatio: "1:1",

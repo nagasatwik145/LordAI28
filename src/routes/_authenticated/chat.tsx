@@ -17,7 +17,7 @@ import { TypingDots } from "@/components/lord/TypingDots";
 import { ChatInput } from "@/components/lord/chat/input/ChatInput";
 import { ChatErrorBoundary } from "@/components/lord/ChatErrorBoundary";
 import ImageGenModal from "@/components/lord/ImageGenModal";
-import { detectImageIntent } from "@/lib/image-intent";
+import { detectImageIntent } from "@/lib/ai/image";
 import type { ChatSubmitPayload } from "@/components/lord/chat/input/types";
 import { getToolDef } from "@/components/lord/chat/input/tools";
 import {

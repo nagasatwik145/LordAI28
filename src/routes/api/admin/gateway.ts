@@ -9,7 +9,7 @@ import { GATEWAY_CONFIG } from "@/lib/gateway-config";
 import { createLogger } from "@/lib/gateway-logger";
 import { PROVIDER_CONFIG } from "@/lib/lord-config";
 import { MODEL_REGISTRY } from "@/lib/model-registry";
-import { getImageModelHealth, getImageCredentialDiagnostics } from "@/lib/image-gateway.server";
+import { checkImageHealth } from "@/lib/ai/image";
 import { reloadServerEnv } from "@/lib/env.server";
 
 const logger = createLogger(GATEWAY_CONFIG);
@@ -59,15 +59,13 @@ export const Route = createFileRoute("/api/admin/gateway")({
         const allStats = infra.modelStats.getAllStats();
 
         const providerDiagnostics = getProviderConfigurationDiagnostics();
-        const imageModels = await getImageModelHealth();
-        const imageCredentials = getImageCredentialDiagnostics();
+        const imageProvider = await checkImageHealth();
 
         return Response.json({
           timestamp: Date.now(),
           providerConfiguration: providerDiagnostics,
           providers: providerHealth,
-          imageModels,
-          imageCredentials,
+          imageProvider,
           disabledModels: disabledModels.map((m) => ({
             provider: m.provider,
             model: m.model,

@@ -20,7 +20,6 @@ import { Route as ApiSharesRouteImport } from './routes/api/shares'
 import { Route as ApiSearchRouteImport } from './routes/api/search'
 import { Route as ApiOpenrouterTestRouteImport } from './routes/api/openrouter-test'
 import { Route as ApiImagesRouteImport } from './routes/api/images'
-import { Route as ApiImagePersistRouteImport } from './routes/api/image-persist'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthenticatedVoiceRouteImport } from './routes/_authenticated/voice'
@@ -72,6 +71,10 @@ import { Route as ApiKnowledge2RelationsRouteImport } from './routes/api/knowled
 import { Route as ApiKnowledge2EntitiesRouteImport } from './routes/api/knowledge2/entities'
 import { Route as ApiKnowledgeUploadRouteImport } from './routes/api/knowledge/upload'
 import { Route as ApiKnowledgeIdRouteImport } from './routes/api/knowledge/$id'
+import { Route as ApiImagesRegenerateRouteImport } from './routes/api/images/regenerate'
+import { Route as ApiImagesModelsRouteImport } from './routes/api/images/models'
+import { Route as ApiImagesIdRouteImport } from './routes/api/images/$id'
+import { Route as ApiImageHealthRouteImport } from './routes/api/image/health'
 import { Route as ApiCommandPaletteSearchRouteImport } from './routes/api/command-palette/search'
 import { Route as ApiCanvasVersionsRouteImport } from './routes/api/canvas/versions'
 import { Route as ApiCanvasStreamRouteImport } from './routes/api/canvas/stream'
@@ -139,11 +142,6 @@ const ApiOpenrouterTestRoute = ApiOpenrouterTestRouteImport.update({
 const ApiImagesRoute = ApiImagesRouteImport.update({
   id: '/api/images',
   path: '/api/images',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiImagePersistRoute = ApiImagePersistRouteImport.update({
-  id: '/api/image-persist',
-  path: '/api/image-persist',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiHealthRoute = ApiHealthRouteImport.update({
@@ -407,6 +405,26 @@ const ApiKnowledgeIdRoute = ApiKnowledgeIdRouteImport.update({
   path: '/api/knowledge/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiImagesRegenerateRoute = ApiImagesRegenerateRouteImport.update({
+  id: '/regenerate',
+  path: '/regenerate',
+  getParentRoute: () => ApiImagesRoute,
+} as any)
+const ApiImagesModelsRoute = ApiImagesModelsRouteImport.update({
+  id: '/models',
+  path: '/models',
+  getParentRoute: () => ApiImagesRoute,
+} as any)
+const ApiImagesIdRoute = ApiImagesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ApiImagesRoute,
+} as any)
+const ApiImageHealthRoute = ApiImageHealthRouteImport.update({
+  id: '/api/image/health',
+  path: '/api/image/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiCommandPaletteSearchRoute = ApiCommandPaletteSearchRouteImport.update({
   id: '/api/command-palette/search',
   path: '/api/command-palette/search',
@@ -510,8 +528,7 @@ export interface FileRoutesByFullPath {
   '/voice': typeof AuthenticatedVoiceRoute
   '/api/chat': typeof ApiChatRoute
   '/api/health': typeof ApiHealthRoute
-  '/api/image-persist': typeof ApiImagePersistRoute
-  '/api/images': typeof ApiImagesRoute
+  '/api/images': typeof ApiImagesRouteWithChildren
   '/api/openrouter-test': typeof ApiOpenrouterTestRoute
   '/api/search': typeof ApiSearchRoute
   '/api/shares': typeof ApiSharesRouteWithChildren
@@ -524,6 +541,10 @@ export interface FileRoutesByFullPath {
   '/api/canvas/stream': typeof ApiCanvasStreamRoute
   '/api/canvas/versions': typeof ApiCanvasVersionsRoute
   '/api/command-palette/search': typeof ApiCommandPaletteSearchRoute
+  '/api/image/health': typeof ApiImageHealthRoute
+  '/api/images/$id': typeof ApiImagesIdRoute
+  '/api/images/models': typeof ApiImagesModelsRoute
+  '/api/images/regenerate': typeof ApiImagesRegenerateRoute
   '/api/knowledge/$id': typeof ApiKnowledgeIdRoute
   '/api/knowledge/upload': typeof ApiKnowledgeUploadRoute
   '/api/knowledge2/entities': typeof ApiKnowledge2EntitiesRoute
@@ -588,8 +609,7 @@ export interface FileRoutesByTo {
   '/voice': typeof AuthenticatedVoiceRoute
   '/api/chat': typeof ApiChatRoute
   '/api/health': typeof ApiHealthRoute
-  '/api/image-persist': typeof ApiImagePersistRoute
-  '/api/images': typeof ApiImagesRoute
+  '/api/images': typeof ApiImagesRouteWithChildren
   '/api/openrouter-test': typeof ApiOpenrouterTestRoute
   '/api/search': typeof ApiSearchRoute
   '/api/shares': typeof ApiSharesRouteWithChildren
@@ -602,6 +622,10 @@ export interface FileRoutesByTo {
   '/api/canvas/stream': typeof ApiCanvasStreamRoute
   '/api/canvas/versions': typeof ApiCanvasVersionsRoute
   '/api/command-palette/search': typeof ApiCommandPaletteSearchRoute
+  '/api/image/health': typeof ApiImageHealthRoute
+  '/api/images/$id': typeof ApiImagesIdRoute
+  '/api/images/models': typeof ApiImagesModelsRoute
+  '/api/images/regenerate': typeof ApiImagesRegenerateRoute
   '/api/knowledge/$id': typeof ApiKnowledgeIdRoute
   '/api/knowledge/upload': typeof ApiKnowledgeUploadRoute
   '/api/knowledge2/entities': typeof ApiKnowledge2EntitiesRoute
@@ -668,8 +692,7 @@ export interface FileRoutesById {
   '/_authenticated/voice': typeof AuthenticatedVoiceRoute
   '/api/chat': typeof ApiChatRoute
   '/api/health': typeof ApiHealthRoute
-  '/api/image-persist': typeof ApiImagePersistRoute
-  '/api/images': typeof ApiImagesRoute
+  '/api/images': typeof ApiImagesRouteWithChildren
   '/api/openrouter-test': typeof ApiOpenrouterTestRoute
   '/api/search': typeof ApiSearchRoute
   '/api/shares': typeof ApiSharesRouteWithChildren
@@ -682,6 +705,10 @@ export interface FileRoutesById {
   '/api/canvas/stream': typeof ApiCanvasStreamRoute
   '/api/canvas/versions': typeof ApiCanvasVersionsRoute
   '/api/command-palette/search': typeof ApiCommandPaletteSearchRoute
+  '/api/image/health': typeof ApiImageHealthRoute
+  '/api/images/$id': typeof ApiImagesIdRoute
+  '/api/images/models': typeof ApiImagesModelsRoute
+  '/api/images/regenerate': typeof ApiImagesRegenerateRoute
   '/api/knowledge/$id': typeof ApiKnowledgeIdRoute
   '/api/knowledge/upload': typeof ApiKnowledgeUploadRoute
   '/api/knowledge2/entities': typeof ApiKnowledge2EntitiesRoute
@@ -748,7 +775,6 @@ export interface FileRouteTypes {
     | '/voice'
     | '/api/chat'
     | '/api/health'
-    | '/api/image-persist'
     | '/api/images'
     | '/api/openrouter-test'
     | '/api/search'
@@ -762,6 +788,10 @@ export interface FileRouteTypes {
     | '/api/canvas/stream'
     | '/api/canvas/versions'
     | '/api/command-palette/search'
+    | '/api/image/health'
+    | '/api/images/$id'
+    | '/api/images/models'
+    | '/api/images/regenerate'
     | '/api/knowledge/$id'
     | '/api/knowledge/upload'
     | '/api/knowledge2/entities'
@@ -826,7 +856,6 @@ export interface FileRouteTypes {
     | '/voice'
     | '/api/chat'
     | '/api/health'
-    | '/api/image-persist'
     | '/api/images'
     | '/api/openrouter-test'
     | '/api/search'
@@ -840,6 +869,10 @@ export interface FileRouteTypes {
     | '/api/canvas/stream'
     | '/api/canvas/versions'
     | '/api/command-palette/search'
+    | '/api/image/health'
+    | '/api/images/$id'
+    | '/api/images/models'
+    | '/api/images/regenerate'
     | '/api/knowledge/$id'
     | '/api/knowledge/upload'
     | '/api/knowledge2/entities'
@@ -905,7 +938,6 @@ export interface FileRouteTypes {
     | '/_authenticated/voice'
     | '/api/chat'
     | '/api/health'
-    | '/api/image-persist'
     | '/api/images'
     | '/api/openrouter-test'
     | '/api/search'
@@ -919,6 +951,10 @@ export interface FileRouteTypes {
     | '/api/canvas/stream'
     | '/api/canvas/versions'
     | '/api/command-palette/search'
+    | '/api/image/health'
+    | '/api/images/$id'
+    | '/api/images/models'
+    | '/api/images/regenerate'
     | '/api/knowledge/$id'
     | '/api/knowledge/upload'
     | '/api/knowledge2/entities'
@@ -967,8 +1003,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ApiChatRoute: typeof ApiChatRoute
   ApiHealthRoute: typeof ApiHealthRoute
-  ApiImagePersistRoute: typeof ApiImagePersistRoute
-  ApiImagesRoute: typeof ApiImagesRoute
+  ApiImagesRoute: typeof ApiImagesRouteWithChildren
   ApiOpenrouterTestRoute: typeof ApiOpenrouterTestRoute
   ApiSearchRoute: typeof ApiSearchRoute
   ApiSharesRoute: typeof ApiSharesRouteWithChildren
@@ -979,6 +1014,7 @@ export interface RootRouteChildren {
   ApiCanvasStreamRoute: typeof ApiCanvasStreamRoute
   ApiCanvasVersionsRoute: typeof ApiCanvasVersionsRoute
   ApiCommandPaletteSearchRoute: typeof ApiCommandPaletteSearchRoute
+  ApiImageHealthRoute: typeof ApiImageHealthRoute
   ApiKnowledgeIdRoute: typeof ApiKnowledgeIdRoute
   ApiKnowledgeUploadRoute: typeof ApiKnowledgeUploadRoute
   ApiKnowledge2EntitiesRoute: typeof ApiKnowledge2EntitiesRoute
@@ -1085,13 +1121,6 @@ declare module '@tanstack/react-router' {
       path: '/api/images'
       fullPath: '/api/images'
       preLoaderRoute: typeof ApiImagesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/image-persist': {
-      id: '/api/image-persist'
-      path: '/api/image-persist'
-      fullPath: '/api/image-persist'
-      preLoaderRoute: typeof ApiImagePersistRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/health': {
@@ -1451,6 +1480,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiKnowledgeIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/images/regenerate': {
+      id: '/api/images/regenerate'
+      path: '/regenerate'
+      fullPath: '/api/images/regenerate'
+      preLoaderRoute: typeof ApiImagesRegenerateRouteImport
+      parentRoute: typeof ApiImagesRoute
+    }
+    '/api/images/models': {
+      id: '/api/images/models'
+      path: '/models'
+      fullPath: '/api/images/models'
+      preLoaderRoute: typeof ApiImagesModelsRouteImport
+      parentRoute: typeof ApiImagesRoute
+    }
+    '/api/images/$id': {
+      id: '/api/images/$id'
+      path: '/$id'
+      fullPath: '/api/images/$id'
+      preLoaderRoute: typeof ApiImagesIdRouteImport
+      parentRoute: typeof ApiImagesRoute
+    }
+    '/api/image/health': {
+      id: '/api/image/health'
+      path: '/api/image/health'
+      fullPath: '/api/image/health'
+      preLoaderRoute: typeof ApiImageHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/command-palette/search': {
       id: '/api/command-palette/search'
       path: '/api/command-palette/search'
@@ -1611,6 +1668,22 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface ApiImagesRouteChildren {
+  ApiImagesIdRoute: typeof ApiImagesIdRoute
+  ApiImagesModelsRoute: typeof ApiImagesModelsRoute
+  ApiImagesRegenerateRoute: typeof ApiImagesRegenerateRoute
+}
+
+const ApiImagesRouteChildren: ApiImagesRouteChildren = {
+  ApiImagesIdRoute: ApiImagesIdRoute,
+  ApiImagesModelsRoute: ApiImagesModelsRoute,
+  ApiImagesRegenerateRoute: ApiImagesRegenerateRoute,
+}
+
+const ApiImagesRouteWithChildren = ApiImagesRoute._addFileChildren(
+  ApiImagesRouteChildren,
+)
+
 interface ApiSharesRouteChildren {
   ApiSharesTokenRoute: typeof ApiSharesTokenRoute
 }
@@ -1651,8 +1724,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ApiChatRoute: ApiChatRoute,
   ApiHealthRoute: ApiHealthRoute,
-  ApiImagePersistRoute: ApiImagePersistRoute,
-  ApiImagesRoute: ApiImagesRoute,
+  ApiImagesRoute: ApiImagesRouteWithChildren,
   ApiOpenrouterTestRoute: ApiOpenrouterTestRoute,
   ApiSearchRoute: ApiSearchRoute,
   ApiSharesRoute: ApiSharesRouteWithChildren,
@@ -1663,6 +1735,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCanvasStreamRoute: ApiCanvasStreamRoute,
   ApiCanvasVersionsRoute: ApiCanvasVersionsRoute,
   ApiCommandPaletteSearchRoute: ApiCommandPaletteSearchRoute,
+  ApiImageHealthRoute: ApiImageHealthRoute,
   ApiKnowledgeIdRoute: ApiKnowledgeIdRoute,
   ApiKnowledgeUploadRoute: ApiKnowledgeUploadRoute,
   ApiKnowledge2EntitiesRoute: ApiKnowledge2EntitiesRoute,
