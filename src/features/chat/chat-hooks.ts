@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { ChatMessage, Conversation } from "@/lib/phase2/types";
 
-const db = supabase as any;
+const db = supabase;
 
 export function useConversations() {
   return useQuery({
@@ -88,7 +88,9 @@ export function useBranchConversation() {
           title: `Branch of ${source.title ?? "Conversation"}`,
           folder_id: source.folder_id,
           metadata: {
-            ...source.metadata,
+            ...(typeof source.metadata === "object" && source.metadata !== null
+              ? (source.metadata as Record<string, unknown>)
+              : {}),
             branchedFrom: conversationId,
             branchedFromMessage: messageId,
           },

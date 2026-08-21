@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { Database } from "@/integrations/supabase/types";
 
 const SettingsSchema = z.object({
   default_mode: z.enum(["fast", "balanced", "reasoning", "coding", "creative"]).optional(),
@@ -41,13 +42,14 @@ export const updateUserSettings = createServerFn({ method: "POST" })
   .validator((input: unknown) => SettingsSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const payload = { user_id: userId, ...data, updated_at: new Date().toISOString() } as Record<
-      string,
-      unknown
-    >;
+    const payload = {
+      user_id: userId,
+      ...data,
+      updated_at: new Date().toISOString(),
+    } satisfies Database["public"]["Tables"]["user_settings"]["Insert"];
     const { error } = await supabase
       .from("user_settings")
-      .upsert(payload as any, { onConflict: "user_id" });
+      .upsert(payload, { onConflict: "user_id" });
     if (error) {
       console.error("[updateUserSettings] supabase upsert error:", error);
       throw error;

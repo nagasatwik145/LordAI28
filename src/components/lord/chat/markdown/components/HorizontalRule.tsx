@@ -5,7 +5,7 @@
 
 import { cn } from "@/lib/utils";
 
-interface HorizontalRuleProps extends React.HTMLAttributes<HTMLHRElement> {}
+type HorizontalRuleProps = React.HTMLAttributes<HTMLHRElement>;
 
 export function HorizontalRule({ className, ...props }: HorizontalRuleProps) {
   return (

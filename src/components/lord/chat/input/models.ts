@@ -6,11 +6,13 @@ export interface ModelDef {
 
 import { MODEL_REGISTRY, DEFAULT_MODEL_ID } from "@/lib/model-registry";
 
-export const MODELS: ModelDef[] = MODEL_REGISTRY.map((m) => ({
-  id: m.id,
-  label: m.label,
-  provider: m.provider,
-}));
+export const MODELS: ModelDef[] = MODEL_REGISTRY.filter((m) => m.supports.includes("chat")).map(
+  (m) => ({
+    id: m.id,
+    label: m.label,
+    provider: m.provider,
+  }),
+);
 
 export { DEFAULT_MODEL_ID };
 

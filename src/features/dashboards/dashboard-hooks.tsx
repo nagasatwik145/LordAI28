@@ -63,7 +63,7 @@ export function useDashboardStats() {
           .select("id", { count: "exact", head: true })
           .eq("role", "user")
           .eq("user_id", user.id),
-        (supabase as any)
+        supabase
           .from("canvas_artifacts")
           .select("id", { count: "exact", head: true })
           .eq("user_id", user.id)
@@ -86,7 +86,7 @@ export function useDashboardStats() {
           .select("id", { count: "exact", head: true })
           .eq("user_id", user.id)
           .eq("is_archived", false),
-        (supabase as any)
+        supabase
           .from("files")
           .select("id", { count: "exact", head: true })
           .eq("user_id", user.id)

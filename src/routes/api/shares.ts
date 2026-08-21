@@ -19,6 +19,9 @@ export const Route = createFileRoute("/api/shares")({
     handlers: {
       // List the current user's shares (one per conversation).
       GET: async ({ context }) => {
+        console.info(
+          JSON.stringify({ event: "shares_handler_enter", message: "SHARES HANDLER ENTER" }),
+        );
         const { supabase, userId } = context as {
           supabase: SupabaseClient<Database>;
           userId: string;
@@ -32,11 +35,21 @@ export const Route = createFileRoute("/api/shares")({
         if (error) {
           return apiErrorResponse(500, "INTERNAL_ERROR", getSafeErrorMessage(error), rid);
         }
+        console.info(
+          JSON.stringify({
+            event: "shares_handler_exit",
+            message: "SHARES HANDLER EXIT",
+            status: 200,
+          }),
+        );
         return Response.json({ shares: data as ShareRecord[] });
       },
 
       // Create (or return existing) share for a conversation the user owns.
       POST: async ({ request, context }) => {
+        console.info(
+          JSON.stringify({ event: "shares_handler_enter", message: "SHARES HANDLER ENTER" }),
+        );
         const { supabase, userId } = context as {
           supabase: SupabaseClient<Database>;
           userId: string;
@@ -91,6 +104,13 @@ export const Route = createFileRoute("/api/shares")({
           return apiErrorResponse(500, "INTERNAL_ERROR", getSafeErrorMessage(existErr), rid);
         }
         if (existing) {
+          console.info(
+            JSON.stringify({
+              event: "shares_handler_exit",
+              message: "SHARES HANDLER EXIT",
+              status: 200,
+            }),
+          );
           return Response.json({ share: existing as ShareRecord, created: false });
         }
 
@@ -117,6 +137,13 @@ export const Route = createFileRoute("/api/shares")({
           }
           return apiErrorResponse(500, "INTERNAL_ERROR", getSafeErrorMessage(createErr), rid);
         }
+        console.info(
+          JSON.stringify({
+            event: "shares_handler_exit",
+            message: "SHARES HANDLER EXIT",
+            status: 200,
+          }),
+        );
         return Response.json({ share: created as ShareRecord, created: true });
       },
     },

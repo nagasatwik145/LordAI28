@@ -444,7 +444,7 @@ async function fetchMemories(
   }>
 > {
   const { supabase } = await import("@/integrations/supabase/client");
-  const db = supabase as any;
+  const db = supabase;
   let query = db
     .from("memories")
     .select("*")
@@ -494,7 +494,7 @@ async function fetchKnowledgeChunks(
   }>
 > {
   const { supabase } = await import("@/integrations/supabase/client");
-  const db = supabase as any;
+  const db = supabase;
   let query = db
     .from("knowledge_chunks")
     .select("*")
@@ -555,7 +555,7 @@ async function fetchRecentChats(
   }>
 > {
   const { supabase } = await import("@/integrations/supabase/client");
-  const db = supabase as any;
+  const db = supabase;
   let query = db
     .from("conversations")
     .select("id, title, project_id, updated_at, created_at")
@@ -594,7 +594,7 @@ async function fetchPinnedNotes(
   }>
 > {
   const { supabase } = await import("@/integrations/supabase/client");
-  const db = supabase as any;
+  const db = supabase;
   let query = db
     .from("project_notes")
     .select("id, title, content, is_pinned, project_id, updated_at, created_at")
@@ -649,7 +649,7 @@ async function fetchRecentTasks(
   }>
 > {
   const { supabase } = await import("@/integrations/supabase/client");
-  const db = supabase as any;
+  const db = supabase;
   let query = db
     .from("project_tasks")
     .select(

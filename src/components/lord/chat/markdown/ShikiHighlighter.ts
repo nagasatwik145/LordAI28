@@ -1,11 +1,14 @@
-import { createHighlighterCore } from "shiki/core";
+import { createHighlighterCore, type HighlighterCore } from "shiki/core";
 import { createJavaScriptRegexEngine } from "shiki/engine/javascript";
+import type { Element, Root, RootContent } from "hast";
 
-let highlighterPromise: Promise<any> | null = null;
+type Visitable = Root | Element;
+
+let highlighterPromise: Promise<HighlighterCore> | null = null;
 
 export class ShikiHighlighter {
   private static instance: ShikiHighlighter;
-  private highlighter: any = null;
+  private highlighter: HighlighterCore | null = null;
 
   private constructor() {}
 
@@ -16,7 +19,7 @@ export class ShikiHighlighter {
     return ShikiHighlighter.instance;
   }
 
-  async getHighlighter(): Promise<any> {
+  async getHighlighter(): Promise<HighlighterCore> {
     if (this.highlighter) return this.highlighter;
 
     if (!highlighterPromise) {
@@ -27,7 +30,7 @@ export class ShikiHighlighter {
     return this.highlighter;
   }
 
-  private async createHighlighter(): Promise<any> {
+  private async createHighlighter(): Promise<HighlighterCore> {
     return createHighlighterCore({
       themes: ["github-dark"],
       langs: [
@@ -54,23 +57,26 @@ export class ShikiHighlighter {
         "xml",
       ],
       engine: createJavaScriptRegexEngine(),
-    } as any);
+    } as unknown as Parameters<typeof createHighlighterCore>[0]);
   }
 
   rehypePlugin() {
-    return async (tree: any) => {
+    return async (tree: Root) => {
       const highlighter = await this.getHighlighter();
 
-      const visit = (node: any) => {
+      const visit = (node: Visitable) => {
         if (node.type === "element" && node.tagName === "pre") {
           const codeNode = node.children?.[0];
-          if (codeNode?.type === "element" && codeNode.tagName === "code") {
-            const lang = codeNode.properties?.className?.[0]?.replace("language-", "") || "text";
-            const code = codeNode.children?.[0]?.value || "";
+          if (codeNode && codeNode.type === "element" && codeNode.tagName === "code") {
+            const className = codeNode.properties?.className;
+            const rawClass = Array.isArray(className) ? String(className[0] ?? "") : "";
+            const lang = rawClass.replace("language-", "") || "text";
+            const firstChild = codeNode.children?.[0];
+            const code = firstChild && "value" in firstChild ? String(firstChild.value) : "";
 
             try {
               const highlighted = highlighter.codeToHtml(code, {
-                lang: lang as any,
+                lang,
                 theme: "github-dark",
               });
 
@@ -89,8 +95,8 @@ export class ShikiHighlighter {
                   "overflow-hidden",
                 ],
                 "data-language": lang,
-              };
-              node.children = [{ type: "raw", value: highlighted }];
+              } as Element["properties"];
+              node.children = [{ type: "raw", value: highlighted }] as Element["children"];
             } catch (e) {
               console.warn("Shiki highlighting failed:", e);
             }
@@ -98,7 +104,7 @@ export class ShikiHighlighter {
         }
 
         if (node.children) {
-          node.children.forEach(visit);
+          node.children.forEach((child: RootContent) => visit(child as Visitable));
         }
       };
 
@@ -107,7 +113,7 @@ export class ShikiHighlighter {
   }
 }
 
-let rehypePluginPromise: Promise<any> | null = null;
+let rehypePluginPromise: Promise<(tree: Root) => Promise<void>> | null = null;
 
 export async function getRehypePlugin() {
   const highlighter = ShikiHighlighter.getInstance();

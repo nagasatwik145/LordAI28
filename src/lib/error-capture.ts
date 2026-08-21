@@ -15,6 +15,24 @@ if (typeof globalThis.addEventListener === "function") {
   );
 }
 
+// Node-only lifecycle diagnostics. `uncaughtExceptionMonitor` observes errors
+// without changing Node's normal crash behavior.
+if (typeof process !== "undefined") {
+  process.on("uncaughtExceptionMonitor", (error) => {
+    record(error);
+    console.error("ERROR", error);
+    console.error("STACK TRACE", error.stack);
+  });
+  process.on("unhandledRejection", (reason) => {
+    record(reason);
+    console.error("ERROR", reason);
+    console.error("STACK TRACE", reason instanceof Error ? reason.stack : undefined);
+  });
+  process.on("exit", (code) => {
+    console.info(JSON.stringify({ event: "process_exit", message: "PROCESS EXIT", code }));
+  });
+}
+
 export function consumeLastCapturedError(): unknown {
   if (!lastCapturedError) return undefined;
   if (Date.now() - lastCapturedError.at > TTL_MS) {

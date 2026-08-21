@@ -66,6 +66,42 @@ const SUGGESTED_PROMPTS = [
   "Show me a worked example of Newton's second law",
 ];
 
+const MASTERY_KEYWORDS: Record<TutorMode, RegExp> = {
+  socratic: /\b(why|how do (you|i) know|reason|explain)\b/i,
+  direct: /\b(answer|solve|just tell|what is the (result|solution))\b/i,
+  hint: /\b(hint|clue|help me start|get started|stuck)\b/i,
+  worked_example: /\b(example|show me|worked|demonstrate)\b/i,
+  simplified: /\b(simple|simplify|explain simply|easy|basic)\b/i,
+  analogy: /\b(like|analogy|compare|similar to|metaphor)\b/i,
+  diagnostic: /\b(diagnose|wrong|error|don't understand|confused|mistake)\b/i,
+};
+
+function detectOptimalMode(text: string): TutorMode {
+  let best: TutorMode = "socratic";
+  let bestScore = 0;
+  for (const mode of TUTOR_MODES) {
+    const match = text.match(MASTERY_KEYWORDS[mode]);
+    if (match && match[0].length > bestScore) {
+      best = mode;
+      bestScore = match[0].length;
+    }
+  }
+  return best;
+}
+
+type MasterySignal = {
+  kind: "confidence" | "struggle" | "neutral";
+  text: string;
+};
+
+function analyzeMasterySignal(text: string): MasterySignal | null {
+  const struggle = /\b(don't understand|confused|wrong|error|stuck|help|hint)\b/i.test(text);
+  const confidence = /\b(i get it|i understand|got it|makes sense|easy|simple)\b/i.test(text);
+  if (struggle) return { kind: "struggle", text };
+  if (confidence) return { kind: "confidence", text };
+  return null;
+}
+
 const EMPTY_SESSIONS: ReturnType<typeof listTutorSessions> extends Promise<infer T> ? T : never =
   [] as never;
 
@@ -75,6 +111,7 @@ export function TutorView({ snapshot, userId, conceptId, onBack }: TutorViewProp
   const [draft, setDraft] = useState("");
   const [isThinking, setIsThinking] = useState(false);
   const [tutorMode, setTutorMode] = useState<TutorMode>("socratic");
+  const [adaptiveMode, setAdaptiveMode] = useState<TutorMode | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [sessions, setSessions] = useState<TutorSessionRow[]>([]);
@@ -83,6 +120,7 @@ export function TutorView({ snapshot, userId, conceptId, onBack }: TutorViewProp
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const titleGeneratedForRef = useRef<string | null>(null);
+  const masteryUpdateQueueRef = useRef<MasterySignal[]>([]);
 
   const activeConcept = conceptId
     ? snapshot?.concepts.find((c) => c.id === conceptId)
@@ -435,8 +473,8 @@ export function TutorView({ snapshot, userId, conceptId, onBack }: TutorViewProp
         }
 
         const allMessages = [
-          ...messages,
-          userMessage,
+          ...messages.map((m) => ({ role: m.role, content: m.text })),
+          { role: "user" as const, content: text },
           { role: "assistant" as const, content: answer },
         ];
         if (persistedSessionId && allMessages.length >= 4) {

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { requireSupabaseRequestAuth } from "@/integrations/supabase/auth-middleware";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/integrations/supabase/types";
+import type { Database, Json } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/api/knowledge2/relations")({
   server: {
@@ -74,7 +74,7 @@ export const Route = createFileRoute("/api/knowledge2/relations")({
               target_entity_id: targetEntityId,
               relation_type: relationType,
               confidence: confidence ?? 1.0,
-              metadata: metadata ?? {},
+              metadata: (metadata ?? {}) as Json,
             })
             .select()
             .single();

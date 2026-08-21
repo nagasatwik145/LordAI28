@@ -7,7 +7,7 @@
 
 import { cn } from "@/lib/utils";
 
-interface ParagraphProps extends React.HTMLAttributes<HTMLParagraphElement> {}
+type ParagraphProps = React.HTMLAttributes<HTMLParagraphElement>;
 
 export function Paragraph({ children, className, ...props }: ParagraphProps) {
   return (

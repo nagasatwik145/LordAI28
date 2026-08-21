@@ -11,6 +11,8 @@ import {
   getConfiguredProviders,
   validateProvidersAtStartup,
   getGatewayInfrastructure,
+  AllProvidersFailedError,
+  getProviderConfigurationDiagnostics,
   type LordModelGateway,
   type LordProvidersState,
   type LordMode,
@@ -205,14 +207,20 @@ export const Route = createFileRoute("/api/chat")({
     handlers: {
       POST: async ({ request, context }) => {
         const requestId = crypto.randomUUID();
+        logChat("chat_handler_enter", { requestId, message: "CHAT HANDLER ENTER" });
         const t0 = performance.now();
         const configuredProviders = getConfiguredProviders();
+        const providerDiagnostics = getProviderConfigurationDiagnostics();
         logChat("api_chat_request_start", {
           requestId,
           configuredProviders,
-          hasGeminiKey: !!process.env.GEMINI_API_KEY,
-          hasOpenRouterKey: !!process.env.OPENROUTER_API_KEY,
-          hasOpenAiKey: !!process.env.OPENAI_API_KEY,
+          // exists / first 8 characters / length only — never the secret.
+          providers: providerDiagnostics.map((entry) => ({
+            provider: entry.provider,
+            configured: entry.configured,
+            envVar: entry.envVar,
+            key: entry.key,
+          })),
         });
 
         if (configuredProviders.length === 0) {
@@ -348,7 +356,7 @@ export const Route = createFileRoute("/api/chat")({
             totalMs,
           });
 
-          return result.toUIMessageStreamResponse({
+          const response = result.toUIMessageStreamResponse({
             headers: {
               "Cache-Control": "no-store",
               "X-LordAI-Request-Id": requestId,
@@ -376,14 +384,25 @@ export const Route = createFileRoute("/api/chat")({
               };
             },
           });
+          logChat("chat_handler_exit", {
+            requestId,
+            message: "CHAT HANDLER EXIT",
+            status: response.status,
+          });
+          return response;
         } catch (err) {
           const attempts = (err as unknown as { lordAttempts?: ModelAttempt[] })?.lordAttempts;
           const lastAttempt = attempts?.[attempts.length - 1];
+          const routing = err instanceof AllProvidersFailedError ? err : null;
           logChat("api_chat_stream_failed", {
             requestId,
             mode,
             reason: lastAttempt?.reason ?? classifyModelError(err).reason,
             message: getSafeErrorMessage(err),
+            configuredProviders: routing?.configuredProviders ?? configuredProviders,
+            attemptedProviders: routing?.attemptedProviders,
+            notAttemptedProviders: routing?.notAttemptedProviders,
+            allProvidersAttempted: routing?.allProvidersAttempted,
             attempts: attempts?.map((a) => ({
               model: a.model,
               status: a.status,
@@ -395,8 +414,9 @@ export const Route = createFileRoute("/api/chat")({
             })),
           });
 
-          const providerStatuses = (err as unknown as { providerStatuses?: ProviderStatus[] })
-            ?.providerStatuses;
+          const providerStatuses =
+            routing?.providerStatuses ??
+            (err as unknown as { providerStatuses?: ProviderStatus[] })?.providerStatuses;
 
           // When credits/rate-limits fail for one model they fail for all, so
           // surface the most specific status we have.
@@ -444,7 +464,10 @@ export const Route = createFileRoute("/api/chat")({
           }
 
           const { reason, status } = classifyModelError(err);
-          if (reason === "invalid_api_key") {
+          const authLabel = GATEWAY_CONFIG.errorReasonLabels.invalid_api_key;
+          const everyAttemptWasAuthFailure =
+            !!attempts && attempts.length > 0 && attempts.every((a) => a.reason === authLabel);
+          if (reason === "invalid_api_key" || everyAttemptWasAuthFailure) {
             return apiErrorResponse(
               401,
               "AI_AUTH_ERROR",
@@ -460,6 +483,7 @@ export const Route = createFileRoute("/api/chat")({
                   errorCode: a.errorCode,
                   requestId: a.requestId,
                 })),
+                configuredProviders: routing?.configuredProviders,
                 providerStatuses,
               },
             );
@@ -485,10 +509,16 @@ export const Route = createFileRoute("/api/chat")({
             );
           }
 
-          const userMessage =
-            providerStatuses && providerStatuses.length > 0
-              ? buildUserFriendlyMessage(attempts ?? [], providerStatuses)
-              : "All configured models failed.";
+          // "All configured models failed" is only accurate once every
+          // configured provider has genuinely been attempted. When routing
+          // stopped early, say so instead of blaming every provider.
+          const userMessage = !routing
+            ? "The AI request failed before the provider fallback could complete. Please try again in a few moments."
+            : !routing.allProvidersAttempted
+              ? `The AI request stopped before every configured provider was tried (not attempted: ${routing.notAttemptedProviders.join(", ")}). Please try again in a few moments.`
+              : providerStatuses && providerStatuses.length > 0
+                ? buildUserFriendlyMessage(attempts ?? [], providerStatuses)
+                : "All configured models failed.";
 
           return apiErrorResponse(502, "AI_UPSTREAM_ERROR", userMessage, requestId, {
             attempts:
@@ -501,6 +531,7 @@ export const Route = createFileRoute("/api/chat")({
                 errorCode: a.errorCode,
                 requestId: a.requestId,
               })) ?? [],
+            configuredProviders: routing?.attemptedProviders,
             providerStatuses,
           });
         }

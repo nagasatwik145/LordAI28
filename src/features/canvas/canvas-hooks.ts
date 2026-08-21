@@ -3,8 +3,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { CanvasArtifact, ArtifactVersion, ArtifactType } from "@/lib/phase2/types";
+import type { Database } from "@/integrations/supabase/types";
 
-const db = supabase as any;
+const db = supabase;
 const ARTIFACTS_TABLE = "canvas_artifacts";
 const VERSIONS_TABLE = "canvas_artifact_versions";
 
@@ -96,7 +97,7 @@ export async function updateArtifact(
 
   if (!existing) throw new Error("Artifact not found");
 
-  const patch: Record<string, unknown> = {};
+  const patch: Database["public"]["Tables"]["canvas_artifacts"]["Update"] = {};
   if (updates.title !== undefined) patch.title = updates.title;
   if (updates.content !== undefined) patch.content = updates.content;
   if (updates.type !== undefined) patch.type = updates.type;
@@ -144,7 +145,7 @@ export async function fetchVersions(artifactId: string): Promise<ArtifactVersion
     .order("created_at", { ascending: false });
 
   if (error || !data) return [];
-  return data.map((v: any) => ({
+  return data.map((v) => ({
     id: v.id,
     artifactId: v.artifact_id,
     content: v.content,

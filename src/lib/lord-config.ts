@@ -8,10 +8,112 @@
 import { z } from "zod";
 
 export type ProviderName = "gemini" | "openrouter" | "openai";
+export type ModelCapability = "chat" | "image";
 
 export interface Candidate {
   provider: ProviderName;
   modelId: string;
+}
+
+export interface ImageModelDefinition {
+  id: string;
+  provider: ProviderName;
+  supports: readonly ["image"];
+  label: string;
+  description: string;
+  badges: readonly string[];
+  maxWidth: number;
+  maxHeight: number;
+  /** USD estimate per generation; providers may vary this by resolution. */
+  estimatedPrice: number;
+  capabilities: ImageModelCapabilities;
+}
+
+export interface ImageModelCapabilities {
+  supportsGeneration: boolean;
+  supportsEditing: boolean;
+  supportsVariation: boolean;
+  supportsTransparentBackground: boolean;
+  supportsStreaming: boolean;
+  supportsNegativePrompt: boolean;
+  supportsAspectRatio: boolean;
+  supportsSeed: boolean;
+  supportsUpscaling: boolean;
+  maxImages: number;
+}
+
+const STANDARD_IMAGE_CAPABILITIES: ImageModelCapabilities = {
+  supportsGeneration: true,
+  supportsEditing: false,
+  supportsVariation: true,
+  supportsTransparentBackground: false,
+  supportsStreaming: false,
+  supportsNegativePrompt: true,
+  supportsAspectRatio: true,
+  supportsSeed: true,
+  supportsUpscaling: false,
+  maxImages: 8,
+};
+
+/** The single registry for image models. OpenRouter owns all four provider APIs. */
+export const IMAGE_MODELS: readonly ImageModelDefinition[] = [
+  {
+    id: "x-ai/grok-imagine-image-2.0",
+    provider: "openrouter",
+    supports: ["image"],
+    label: "Grok Imagine 2",
+    description: "Fast, imaginative image generation from xAI.",
+    badges: ["Fast", "Illustration"],
+    maxWidth: 2048,
+    maxHeight: 2048,
+    estimatedPrice: 0.04,
+    capabilities: STANDARD_IMAGE_CAPABILITIES,
+  },
+  {
+    id: "google/gemini-3.1-flash-lite-image",
+    provider: "openrouter",
+    supports: ["image"],
+    label: "Nano Banana Lite",
+    description: "Google's quick, efficient image model.",
+    badges: ["Fast", "Reasoning"],
+    maxWidth: 2048,
+    maxHeight: 2048,
+    estimatedPrice: 0.02,
+    capabilities: STANDARD_IMAGE_CAPABILITIES,
+  },
+  {
+    id: "black-forest-labs/flux.2-max",
+    provider: "openrouter",
+    supports: ["image"],
+    label: "FLUX Kontext Max",
+    description: "High-fidelity contextual and photorealistic imagery.",
+    badges: ["High Quality", "Photorealistic"],
+    maxWidth: 2048,
+    maxHeight: 2048,
+    estimatedPrice: 0.08,
+    capabilities: {
+      ...STANDARD_IMAGE_CAPABILITIES,
+      supportsEditing: true,
+      supportsTransparentBackground: true,
+    },
+  },
+  {
+    id: "qwen/qwen-image-3-pro",
+    provider: "openrouter",
+    supports: ["image"],
+    label: "Qwen Image 3 Pro",
+    description: "Detailed composition and illustrated image generation.",
+    badges: ["High Quality", "Illustration"],
+    maxWidth: 2048,
+    maxHeight: 2048,
+    estimatedPrice: 0.05,
+    capabilities: { ...STANDARD_IMAGE_CAPABILITIES, supportsEditing: true },
+  },
+] as const;
+
+export const DEFAULT_IMAGE_MODEL_ID = IMAGE_MODELS[0].id;
+export function getImageModel(id?: string): ImageModelDefinition | undefined {
+  return IMAGE_MODELS.find((model) => model.id === (id ?? DEFAULT_IMAGE_MODEL_ID));
 }
 
 // Current, available model ids per provider. Update model ids here only — they
@@ -26,7 +128,12 @@ export const PROVIDER_CONFIG: Record<
 > = {
   gemini: {
     apiKeyEnv: "GEMINI_API_KEY",
-    models: ["gemini-3.5-flash", "gemini-3.1-pro"],
+    // `gemini-pro-latest` is the stable alias for the current Pro model. The
+    // previously configured `gemini-3.1-pro` does not exist on the Generative
+    // Language API (404 "is not found for API version v1beta"), and a 404 is
+    // cached as unavailable for hours — which silently removed Gemini from
+    // routing even when the key was perfectly valid.
+    models: ["gemini-3.5-flash", "gemini-pro-latest"],
   },
   openrouter: {
     apiKeyEnv: "OPENROUTER_API_KEY",
@@ -46,22 +153,46 @@ const candidate = (provider: ProviderName, modelId: string): Candidate => ({ pro
 // rate-limited, returns 5xx, or has no configured key.
 export const LORD_MODELS: Record<LordMode, readonly Candidate[]> = {
   // ⚡ Lowest latency / everyday chat — prefer free/fast providers.
-  fast: [candidate("gemini", "gemini-3.5-flash"), candidate("openai", "gpt-4o-mini")],
+  fast: [
+    candidate("gemini", "gemini-3.5-flash"),
+    candidate("openai", "gpt-4o-mini"),
+    candidate("openrouter", "google/gemma-4-26b-a4b-it:free"),
+  ],
 
   // 💬 Best general-purpose — Gemini first, then OpenAI.
-  balanced: [candidate("gemini", "gemini-3.5-flash"), candidate("openai", "gpt-4o")],
+  balanced: [
+    candidate("gemini", "gemini-3.5-flash"),
+    candidate("openai", "gpt-4o"),
+    candidate("openrouter", "google/gemma-4-26b-a4b-it:free"),
+  ],
 
   // 🧠 Deep reasoning & planning — premium providers first.
-  reasoning: [candidate("openai", "gpt-4o"), candidate("gemini", "gemini-3.1-pro")],
+  reasoning: [
+    candidate("openai", "gpt-4o"),
+    candidate("gemini", "gemini-pro-latest"),
+    candidate("openrouter", "openai/gpt-oss-20b:free"),
+  ],
 
   // 💻 Software engineering — coding-capable models first.
-  coding: [candidate("openai", "gpt-4o"), candidate("gemini", "gemini-3.5-flash")],
+  coding: [
+    candidate("openai", "gpt-4o"),
+    candidate("gemini", "gemini-3.5-flash"),
+    candidate("openrouter", "openai/gpt-oss-20b:free"),
+  ],
 
   // 🎨 Writing, storytelling & content creation
-  creative: [candidate("openai", "gpt-4o"), candidate("gemini", "gemini-3.5-flash")],
+  creative: [
+    candidate("openai", "gpt-4o"),
+    candidate("gemini", "gemini-3.5-flash"),
+    candidate("openrouter", "google/gemma-4-26b-a4b-it:free"),
+  ],
 
   // 🖥️ Lightweight fallback — smallest available models.
-  local: [candidate("gemini", "gemini-3.5-flash"), candidate("openai", "gpt-4o-mini")],
+  local: [
+    candidate("gemini", "gemini-3.5-flash"),
+    candidate("openai", "gpt-4o-mini"),
+    candidate("openrouter", "google/gemma-4-26b-a4b-it:free"),
+  ],
 };
 
 export type LordMode = "fast" | "balanced" | "coding" | "creative" | "reasoning" | "local";
@@ -95,6 +226,10 @@ export type ModelRegistryEntry = {
   label: string;
   provider: string;
   description?: string;
+  supports: readonly ModelCapability[];
+  maxResolution?: { width: number; height: number };
+  estimatedPrice?: number;
+  badges?: readonly string[];
 };
 
 const PROVIDER_LABELS: Record<ProviderName, string> = {
@@ -105,7 +240,7 @@ const PROVIDER_LABELS: Record<ProviderName, string> = {
 
 const MODEL_DESCRIPTIONS: Record<string, string> = {
   "gemini-3.5-flash": "Google's latest fast, efficient model (stable)",
-  "gemini-3.1-pro": "Google's most capable reasoning model (stable)",
+  "gemini-pro-latest": "Google's most capable reasoning model (stable alias)",
   "google/gemma-4-26b-a4b-it:free": "Google's open-weight model via OpenRouter free tier",
   "openai/gpt-oss-20b:free": "OpenAI open-weight model via OpenRouter free tier",
   "gpt-4o-mini": "OpenAI's fast, cost-effective model",
@@ -123,8 +258,21 @@ export function buildModelRegistry(): ModelRegistryEntry[] {
         label: formatModelLabel(modelId),
         provider: label,
         description: MODEL_DESCRIPTIONS[modelId] ?? `${label} model: ${modelId}`,
+        supports: ["chat"],
       });
     }
+  }
+  for (const model of IMAGE_MODELS) {
+    entries.push({
+      id: model.id,
+      label: model.label,
+      provider: PROVIDER_LABELS[model.provider],
+      description: model.description,
+      supports: model.supports,
+      maxResolution: { width: model.maxWidth, height: model.maxHeight },
+      estimatedPrice: model.estimatedPrice,
+      badges: model.badges,
+    });
   }
   return entries;
 }
@@ -350,7 +498,7 @@ export interface ModelAttempt {
 const ERROR_PATTERNS = {
   // Non-retryable: auth / client mistakes
   invalidApiKey:
-    /invalid api key|missing api key|expired api key|unauthorized|authentication failed|not authorized|401/i,
+    /invalid api key|api key not valid|api_key_invalid|incorrect api key|missing api key|expired api key|unauthorized|authentication failed|not authorized|401/i,
   malformedRequest: /malformed request|invalid request|bad request|400/i,
   invalidMessages: /invalid message|message is invalid|content policy|moderation/i,
 
@@ -391,6 +539,35 @@ function extractProviderDetails(error: unknown): {
   return {};
 }
 
+// Provider bodies that mean "this key was rejected", regardless of the HTTP
+// status used to deliver it. Gemini reports an invalid key as
+// 400 { error: { message: "API key not valid. Please pass a valid API key.",
+// status: "INVALID_ARGUMENT", details: [{ reason: "API_KEY_INVALID" }] } },
+// which must be handled as an auth failure and not as a malformed request —
+// otherwise the gateway keeps probing the same provider with the same bad key.
+const AUTH_FAILURE_MESSAGE =
+  /api[\s_-]?key not valid|api[\s_-]?key[\s_-]?invalid|invalid[\s_-]api[\s_-]?key|incorrect api key|expired api key|missing api key|invalid authentication|unauthenticated|no auth credentials|api key expired|permission denied|caller does not have permission/i;
+
+/** True when a provider body indicates the API key itself was rejected. */
+export function isAuthFailureMessage(text?: string): boolean {
+  if (!text) return false;
+  return AUTH_FAILURE_MESSAGE.test(text);
+}
+
+/**
+ * True when a classified error means the provider rejected our credentials.
+ * The gateway uses this to disable that provider for the rest of the request
+ * and continue with the next configured provider.
+ */
+export function isAuthFailure(classification: ModelErrorClassification): boolean {
+  if (classification.reason === "invalid_api_key") return true;
+  if (classification.status === 401 || classification.status === 403) return true;
+  if (classification.status === 400 && isAuthFailureMessage(classification.providerMessage)) {
+    return true;
+  }
+  return false;
+}
+
 // Maps a raw provider/model error to a retry decision. Retryable errors cause
 // the backend to fall through to the next candidate; non-retryable errors stop
 // immediately (the failure is the caller's responsibility, e.g. a bad key).
@@ -404,6 +581,9 @@ export function classifyModelError(error: unknown): ModelErrorClassification {
       const status = clientErr.status;
       const providerMessage = extractMessageFromBody(clientErr.body);
       if (status === 401 || status === 403)
+        return { retryable: false, reason: "invalid_api_key", status, providerMessage };
+      // An auth rejection delivered as 400 (Gemini) is still an auth rejection.
+      if (isAuthFailureMessage(providerMessage) || isAuthFailureMessage(clientErr.body))
         return { retryable: false, reason: "invalid_api_key", status, providerMessage };
       if (status === 400 || status === 422)
         return { retryable: false, reason: "malformed_request", status, providerMessage };

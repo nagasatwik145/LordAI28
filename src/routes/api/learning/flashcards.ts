@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- server context receives the migration-defined database client. */
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
+import { generateText } from "ai";
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { requireSupabaseRequestAuth } from "@/integrations/supabase/auth-middleware";
 import { apiErrorResponse } from "@/lib/api-error";
 import { OPENROUTER_DEFAULT_MODEL } from "@/lib/openrouter-provider";
@@ -32,7 +34,6 @@ const FlashcardRequestSchema = z.discriminatedUnion("action", [
 function getOpenRouterProvider() {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new Error("AI not configured");
-  const { createOpenAICompatible } = require("@ai-sdk/openai-compatible");
   return createOpenAICompatible({
     name: "openrouter",
     apiKey,
@@ -96,7 +97,6 @@ export const Route = createFileRoute("/api/learning/flashcards")({
               sourceContext = `\nSource material:\n${parsed.data.sourceText.slice(0, 10000)}`;
             }
 
-            const { generateText } = require("ai");
             const { text } = await generateText({
               model: provider(OPENROUTER_DEFAULT_MODEL),
               system: `You are a ${diffLabel}-level ${concept.framework} flashcard creator. Output ONLY strict JSON array. No markdown. No extra text.`,

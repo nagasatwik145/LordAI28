@@ -5,10 +5,15 @@
 import ReactMarkdown from "react-markdown";
 import rehypeShiki from "@shikijs/rehype";
 import remarkGfm from "remark-gfm";
+import type { Components } from "react-markdown";
+import type { PluggableList } from "unified";
+import type { Root } from "hast";
+import type { Parent } from "unist";
 import { cn } from "@/lib/utils";
 import type { ComponentPropsWithoutRef } from "react";
 
-type RehypePlugin = (tree: any) => any;
+type RehypePlugin = (tree: Root) => Root;
+
 import {
   Blockquote,
   Bold,
@@ -44,7 +49,7 @@ function safeRehypeShiki(): RehypePlugin {
     defaultColor: false,
   });
 
-  return function safeShiki(tree: any) {
+  return function safeShiki(tree: Root): Root {
     try {
       if (!tree || !tree.children || !Array.isArray(tree.children)) {
         return tree;
@@ -58,13 +63,13 @@ function safeRehypeShiki(): RehypePlugin {
   };
 }
 
-function sanitizeTree(node: any): void {
+function sanitizeTree(node: Parent): void {
   if (!node || typeof node !== "object") return;
 
   if (Array.isArray(node.children)) {
-    node.children = node.children.filter((child: any) => child && typeof child === "object");
+    node.children = node.children.filter((child) => child && typeof child === "object");
     for (const child of node.children) {
-      sanitizeTree(child);
+      sanitizeTree(child as Parent);
     }
   }
 }
@@ -88,7 +93,7 @@ export function MarkdownRenderer({
     <div className={cn(className, streaming && "markdown-streaming")}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
-        rehypePlugins={[[shikiHighlighter]] as any}
+        rehypePlugins={[shikiHighlighter] as PluggableList}
         components={
           {
             h1: (props: ComponentPropsWithoutRef<"h1">) => <Heading level={1} {...props} />,
@@ -116,7 +121,7 @@ export function MarkdownRenderer({
             th: TableHead,
             td: TableCell,
             caption: TableCaption,
-          } as any
+          } as Components
         }
         {...props}
       >

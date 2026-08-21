@@ -26,7 +26,7 @@ async function getAuthenticatedSupabase(request: Request) {
   let authContext: {
     supabase: SupabaseClient<Database>;
     userId: string;
-    claims: any;
+    claims: unknown;
   };
 
   // Try to get user from Authorization header first
@@ -111,12 +111,19 @@ export const requireSupabaseAuth = createMiddleware({ type: "function" }).server
 
 export const requireSupabaseRequestAuth = createMiddleware({ type: "request" }).server(
   async ({ request, next }) => {
+    const path = new URL(request.url).pathname;
+    console.info(JSON.stringify({ event: "auth_start", message: "AUTH START", path }));
     try {
       const authContext = await getAuthenticatedSupabase(request);
+      console.info(
+        JSON.stringify({ event: "auth_ok", message: "AUTH OK", path, userId: authContext.userId }),
+      );
       return next({
         context: authContext,
       });
-    } catch {
+    } catch (error) {
+      console.error("ERROR", error);
+      console.error("STACK TRACE", error instanceof Error ? error.stack : undefined);
       // Request middleware is used by JSON API routes. Returning a response
       // here prevents auth failures from escaping into the global HTML error
       // boundary and turning an expected 401 into a misleading 500 page.

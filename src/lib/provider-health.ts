@@ -1,7 +1,33 @@
 import type { ProviderName } from "./lord-config";
 
 export type HealthStatus =
-  "healthy" | "unavailable" | "rate_limited" | "invalid" | "missing_api_key" | "unknown";
+  | "healthy"
+  | "unavailable"
+  | "rate_limited"
+  | "invalid"
+  | "missing_api_key"
+  | "unknown"
+  // Image-pipeline statuses. They stay distinct from `invalid`/`unavailable` so
+  // the operator (and the UI) can tell "add credits" apart from "bad key",
+  // "model does not support this", and "provider was too slow".
+  | "quota"
+  | "auth_failed"
+  | "timeout"
+  | "unsupported";
+
+/** Operator-facing label for a cached health status. */
+export const HEALTH_STATUS_LABELS: Record<HealthStatus, string> = {
+  healthy: "Healthy",
+  unavailable: "Unavailable",
+  rate_limited: "Rate Limited",
+  invalid: "Invalid",
+  missing_api_key: "Missing API key",
+  unknown: "Unknown",
+  quota: "Quota",
+  auth_failed: "Auth Failed",
+  timeout: "Timeout",
+  unsupported: "Unsupported",
+};
 
 export interface HealthCacheEntry {
   provider: ProviderName;

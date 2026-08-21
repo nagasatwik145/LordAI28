@@ -33,6 +33,246 @@ export type Database = {
   };
   public: {
     Tables: {
+      canvas_artifacts: {
+        Row: {
+          id: string;
+          user_id: string;
+          project_id: string | null;
+          title: string;
+          type: string;
+          content: string;
+          metadata: Json;
+          version: number;
+          parent_version_id: string | null;
+          is_archived: boolean;
+          is_shared: boolean;
+          share_token: string | null;
+          language: string | null;
+          tags: string[];
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          project_id?: string | null;
+          title?: string;
+          type?: string;
+          content?: string;
+          metadata?: Json;
+          version?: number;
+          parent_version_id?: string | null;
+          is_archived?: boolean;
+          is_shared?: boolean;
+          share_token?: string | null;
+          language?: string | null;
+          tags?: string[];
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          project_id?: string | null;
+          title?: string;
+          type?: string;
+          content?: string;
+          metadata?: Json;
+          version?: number;
+          parent_version_id?: string | null;
+          is_archived?: boolean;
+          is_shared?: boolean;
+          share_token?: string | null;
+          language?: string | null;
+          tags?: string[];
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      canvas_artifact_versions: {
+        Row: {
+          id: string;
+          artifact_id: string;
+          content: string;
+          metadata: Json;
+          created_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          artifact_id: string;
+          content: string;
+          metadata?: Json;
+          created_by: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          artifact_id?: string;
+          content?: string;
+          metadata?: Json;
+          created_by?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      files: {
+        Row: {
+          id: string;
+          user_id: string;
+          project_id: string | null;
+          name: string;
+          path: string;
+          mime_type: string;
+          size_bytes: number;
+          storage_path: string;
+          thumbnail_path: string | null;
+          is_pinned: boolean;
+          is_archived: boolean;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          project_id?: string | null;
+          name: string;
+          path?: string;
+          mime_type?: string;
+          size_bytes?: number;
+          storage_path: string;
+          thumbnail_path?: string | null;
+          is_pinned?: boolean;
+          is_archived?: boolean;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          project_id?: string | null;
+          name?: string;
+          path?: string;
+          mime_type?: string;
+          size_bytes?: number;
+          storage_path?: string;
+          thumbnail_path?: string | null;
+          is_pinned?: boolean;
+          is_archived?: boolean;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      knowledge_clusters: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          description: string | null;
+          entity_ids: string[];
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          description?: string | null;
+          entity_ids?: string[];
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          name?: string;
+          description?: string | null;
+          entity_ids?: string[];
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      knowledge_entities: {
+        Row: {
+          id: string;
+          user_id: string;
+          source_id: string | null;
+          type: string;
+          name: string;
+          description: string | null;
+          embedding: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          source_id?: string | null;
+          type?: string;
+          name: string;
+          description?: string | null;
+          embedding?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          source_id?: string | null;
+          type?: string;
+          name?: string;
+          description?: string | null;
+          embedding?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      knowledge_relations: {
+        Row: {
+          id: string;
+          user_id: string;
+          source_entity_id: string;
+          target_entity_id: string;
+          relation_type: string;
+          confidence: number;
+          metadata: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          source_entity_id: string;
+          target_entity_id: string;
+          relation_type: string;
+          confidence?: number;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          source_entity_id?: string;
+          target_entity_id?: string;
+          relation_type?: string;
+          confidence?: number;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       calendar_events: {
         Row: {
           category: string;
@@ -136,12 +376,15 @@ export type Database = {
       };
       conversations: {
         Row: {
+          archived: boolean | null;
           client_tag: string | null;
           created_at: string;
+          deleted_at: string | null;
           favorite: boolean;
           folder_id: string | null;
           id: string;
           last_message_at: string | null;
+          metadata: Json;
           pinned: boolean;
           pinned_at: string | null;
           project_id: string | null;
@@ -151,12 +394,15 @@ export type Database = {
           user_id: string | null;
         };
         Insert: {
+          archived?: boolean | null;
           client_tag?: string | null;
           created_at?: string;
+          deleted_at?: string | null;
           favorite?: boolean;
           folder_id?: string | null;
           id?: string;
           last_message_at?: string | null;
+          metadata?: Json;
           pinned?: boolean;
           pinned_at?: string | null;
           project_id?: string | null;
@@ -166,12 +412,15 @@ export type Database = {
           user_id?: string | null;
         };
         Update: {
+          archived?: boolean | null;
           client_tag?: string | null;
           created_at?: string;
+          deleted_at?: string | null;
           favorite?: boolean;
           folder_id?: string | null;
           id?: string;
           last_message_at?: string | null;
+          metadata?: Json;
           pinned?: boolean;
           pinned_at?: string | null;
           project_id?: string | null;
@@ -2693,39 +2942,63 @@ export type Database = {
       };
       messages: {
         Row: {
+          branch_from_message_id: string | null;
           client_tag: string | null;
           content: string | null;
           conversation_id: string | null;
           created_at: string;
+          edited_at: string | null;
           id: string;
+          is_edited: boolean | null;
+          is_regenerated: boolean | null;
+          metadata: Json;
+          message_type: string;
           model: string | null;
+          parent_message_id: string | null;
           project_id: string | null;
           role: string | null;
           streaming: boolean;
+          updated_at: string | null;
           user_id: string | null;
         };
         Insert: {
+          branch_from_message_id?: string | null;
           client_tag?: string | null;
           content?: string | null;
           conversation_id?: string | null;
           created_at?: string;
+          edited_at?: string | null;
           id?: string;
+          is_edited?: boolean | null;
+          is_regenerated?: boolean | null;
+          metadata?: Json;
+          message_type?: string;
           model?: string | null;
+          parent_message_id?: string | null;
           project_id?: string | null;
           role?: string | null;
           streaming?: boolean;
+          updated_at?: string | null;
           user_id?: string | null;
         };
         Update: {
+          branch_from_message_id?: string | null;
           client_tag?: string | null;
           content?: string | null;
           conversation_id?: string | null;
           created_at?: string;
+          edited_at?: string | null;
           id?: string;
+          is_edited?: boolean | null;
+          is_regenerated?: boolean | null;
+          metadata?: Json;
+          message_type?: string;
           model?: string | null;
+          parent_message_id?: string | null;
           project_id?: string | null;
           role?: string | null;
           streaming?: boolean;
+          updated_at?: string | null;
           user_id?: string | null;
         };
         Relationships: [];
@@ -2799,27 +3072,36 @@ export type Database = {
       user_settings: {
         Row: {
           ai_model: string | null;
-          created_at: string | null;
-          id: string;
-          theme: string | null;
-          updated_at: string | null;
-          user_id: string | null;
+          auto_speak: boolean;
+          created_at: string;
+          default_mode: string;
+          notifications_enabled: boolean;
+          theme: string;
+          updated_at: string;
+          user_id: string;
+          voice_rate: number;
         };
         Insert: {
           ai_model?: string | null;
-          created_at?: string | null;
-          id?: string;
-          theme?: string | null;
-          updated_at?: string | null;
-          user_id?: string | null;
+          auto_speak?: boolean;
+          created_at?: string;
+          default_mode?: string;
+          notifications_enabled?: boolean;
+          theme?: string;
+          updated_at?: string;
+          user_id: string;
+          voice_rate?: number;
         };
         Update: {
           ai_model?: string | null;
-          created_at?: string | null;
-          id?: string;
-          theme?: string | null;
-          updated_at?: string | null;
-          user_id?: string | null;
+          auto_speak?: boolean;
+          created_at?: string;
+          default_mode?: string;
+          notifications_enabled?: boolean;
+          theme?: string;
+          updated_at?: string;
+          user_id?: string;
+          voice_rate?: number;
         };
         Relationships: [];
       };

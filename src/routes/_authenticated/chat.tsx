@@ -16,6 +16,8 @@ import { RichMessage } from "@/components/lord/RichMessage";
 import { TypingDots } from "@/components/lord/TypingDots";
 import { ChatInput } from "@/components/lord/chat/input/ChatInput";
 import { ChatErrorBoundary } from "@/components/lord/ChatErrorBoundary";
+import ImageGenModal from "@/components/lord/ImageGenModal";
+import { detectImageIntent } from "@/lib/image-intent";
 import type { ChatSubmitPayload } from "@/components/lord/chat/input/types";
 import { getToolDef } from "@/components/lord/chat/input/tools";
 import {
@@ -167,6 +169,8 @@ function ChatPage() {
 
   const [mode, setMode] = usePersistedState<LordMode>("chat-mode", DEFAULT_MODE);
   const [input, setInput] = useState("");
+  const [imageModalOpen, setImageModalOpen] = useState(false);
+  const [imagePrompt, setImagePrompt] = useState("");
   const [conversationId, setConversationId] = useState<string | null>(null);
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -1322,6 +1326,14 @@ function ChatPage() {
 
   const submit = async (payload: ChatSubmitPayload) => {
     if (requestInFlightRef.current || busy) return;
+    if (payload.tool === "create-image" || detectImageIntent(payload.text)) {
+      setImagePrompt(
+        payload.text.replace(/^(generate|create) an? image(?: of|:)?\s*/i, "").trim() ||
+          payload.text,
+      );
+      setImageModalOpen(true);
+      return;
+    }
     requestInFlightRef.current = true;
     // Read the ref as well as state: a New Chat click updates the ref
     // synchronously, while React state is applied on the next render.
@@ -1799,6 +1811,16 @@ function ChatPage() {
         </div>
       </AppShell>
       <Toaster />
+      <ImageGenModal
+        open={imageModalOpen}
+        onClose={() => setImageModalOpen(false)}
+        conversationId={conversationId}
+        initialPrompt={imagePrompt}
+        onInsert={() => {
+          setImageModalOpen(false);
+          toast.success("Image generated — available in your gallery.");
+        }}
+      />
     </>
   );
 }

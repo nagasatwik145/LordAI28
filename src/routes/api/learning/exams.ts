@@ -24,7 +24,7 @@ export const Route = createFileRoute("/api/learning/exams")({
 
         const auth = context as {
           userId?: string;
-          supabase?: { from: (table: string) => any };
+          supabase?: SupabaseClient<Database>;
         };
         if (!auth.userId || !auth.supabase) {
           return apiErrorResponse(

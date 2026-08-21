@@ -12,11 +12,21 @@
  */
 
 import { OPENAI_EMBEDDING_DIM } from "./constants";
+import { readEnvApiKey } from "@/lib/env.server";
 
-const EMBEDDINGS_API_URL =
-  process.env.LORD_EMBEDDINGS_URL || "https://openrouter.ai/api/v1/embeddings";
-const EMBEDDINGS_API_KEY = process.env.LORD_EMBEDDINGS_KEY || process.env.OPENROUTER_API_KEY;
-const EMBEDDINGS_MODEL = process.env.LORD_EMBEDDINGS_MODEL || "openai/text-embedding-3-small";
+// Read env at call time, never at module scope: a module-level read is
+// evaluated on first import, which can happen before the server has loaded its
+// env files — the key would then stay `undefined` for the whole process even
+// though it is configured.
+function embeddingsApiUrl(): string {
+  return process.env.LORD_EMBEDDINGS_URL || "https://openrouter.ai/api/v1/embeddings";
+}
+function embeddingsApiKey(): string | undefined {
+  return readEnvApiKey("LORD_EMBEDDINGS_KEY") ?? readEnvApiKey("OPENROUTER_API_KEY");
+}
+function embeddingsModel(): string {
+  return process.env.LORD_EMBEDDINGS_MODEL || "openai/text-embedding-3-small";
+}
 
 const cache = new Map<string, number[]>();
 const MAX_CACHE = 2000;
@@ -28,7 +38,7 @@ export interface EmbeddingResult {
 }
 
 export function embeddingsConfigured(): boolean {
-  return Boolean(EMBEDDINGS_API_URL && EMBEDDINGS_API_KEY);
+  return Boolean(embeddingsApiUrl() && embeddingsApiKey());
 }
 
 function normalize(vec: number[]): number[] {
@@ -74,13 +84,13 @@ export async function embed(text: string): Promise<EmbeddingResult> {
 
   if (embeddingsConfigured()) {
     try {
-      const res = await fetch(EMBEDDINGS_API_URL, {
+      const res = await fetch(embeddingsApiUrl(), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${EMBEDDINGS_API_KEY}`,
+          Authorization: `Bearer ${embeddingsApiKey()}`,
         },
-        body: JSON.stringify({ model: EMBEDDINGS_MODEL, input: text }),
+        body: JSON.stringify({ model: embeddingsModel(), input: text }),
       });
       if (res.ok) {
         const json = (await res.json()) as {

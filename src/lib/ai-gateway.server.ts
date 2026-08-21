@@ -11,10 +11,13 @@ import {
 
 import { estimateCost } from "@/lib/model-cost";
 import type { TokenUsageEvent } from "@/lib/token-usage-store";
+import type { ProviderStatus } from "@/lib/api-error";
 import {
   LORD_MODE_LABELS,
   LORD_MODELS,
   classifyModelError,
+  isAuthFailure,
+  isAuthFailureMessage,
   OpenRouterClientError,
   type LordMode,
   type ModelAttempt,
@@ -25,6 +28,7 @@ import {
   getModeCandidates,
   resolveCandidate,
   buildAllCandidates,
+  IMAGE_MODELS,
 } from "./lord-config";
 import { GATEWAY_CONFIG } from "./gateway-config";
 import { createHealthCache, type HealthCacheEntry, type HealthCache } from "./provider-health";
@@ -32,11 +36,31 @@ import { createCircuitBreaker, type CircuitBreaker } from "./circuit-breaker";
 import { createModelStatsStore, type ModelStatsStore } from "./model-stats";
 import { createLogger, type Logger } from "./gateway-logger";
 import { OPENROUTER_DEFAULT_MODEL } from "./openrouter-provider";
+import {
+  ensureServerEnvLoaded,
+  getProviderEnvSummaries,
+  readEnvApiKey,
+  summarizeSecret,
+  type EnvKeySummary,
+} from "./env.server";
 
 const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
 const OPENROUTER_CHAT_PATH = "/chat/completions";
 const OPENROUTER_REFERER = process.env.OPENROUTER_REFERER || "https://lordai.app";
 const OPENROUTER_TITLE = process.env.OPENROUTER_TITLE || "LordAI";
+
+const PROVIDER_LABELS: Record<ProviderName, string> = {
+  gemini: "Gemini",
+  openrouter: "OpenRouter",
+  openai: "OpenAI",
+};
+
+// Read a provider key from process.env, normalized exactly as it is handed to
+// the provider SDK. Reading through this one helper guarantees the SDK, the
+// diagnostics, and the on-the-wire verification all observe the same value.
+export function getProviderApiKey(provider: ProviderName): string | undefined {
+  return readEnvApiKey(PROVIDER_CONFIG[provider].apiKeyEnv);
+}
 
 // ---------------------------------------------------------------------------
 // Key validation (never logs the key itself)
@@ -66,17 +90,116 @@ export function validateOpenRouterApiKey(apiKey: string | undefined): {
 
 let diagnosticsLogged = false;
 
-export function getLordEnvironmentDiagnostics() {
-  const isEdge = typeof (globalThis as { EdgeRuntime?: unknown }).EdgeRuntime !== "undefined";
+function summarizeApiKey(apiKey: string | undefined) {
   return {
-    hasGeminiKey: !!process.env.GEMINI_API_KEY,
-    hasOpenRouterKey: !!process.env.OPENROUTER_API_KEY,
-    hasOpenAiKey: !!process.env.OPENAI_API_KEY,
+    exists: Boolean(apiKey),
+    first8: apiKey ? apiKey.slice(0, 8) : undefined,
+    length: apiKey?.length ?? 0,
+  };
+}
+
+export function getLordEnvironmentDiagnostics() {
+  ensureServerEnvLoaded();
+  const isEdge = typeof (globalThis as { EdgeRuntime?: unknown }).EdgeRuntime !== "undefined";
+  const geminiKey = getProviderApiKey("gemini");
+  const openaiKey = getProviderApiKey("openai");
+  const openRouterKey = getProviderApiKey("openrouter");
+  return {
+    hasGeminiKey: !!geminiKey,
+    hasOpenRouterKey: !!openRouterKey,
+    hasOpenAiKey: !!openaiKey,
+    providers: {
+      gemini: {
+        configured: !!geminiKey && validateApiKey(geminiKey).valid,
+        key: summarizeApiKey(geminiKey),
+      },
+      openai: {
+        configured: !!openaiKey && validateApiKey(openaiKey).valid,
+        key: summarizeApiKey(openaiKey),
+      },
+      openrouter: {
+        configured: !!openRouterKey && validateApiKey(openRouterKey).valid,
+        key: summarizeApiKey(openRouterKey),
+      },
+    },
     nodeVersion: process.version,
     runtime: isEdge ? "edge" : "node",
     platform: typeof process.platform === "string" ? process.platform : "unknown",
     deployedOn: process.env.VERCEL ? "vercel" : (process.env.NITRO_PRESET ?? "local"),
   };
+}
+
+// ---------------------------------------------------------------------------
+// Startup configuration diagnostics (task 8)
+// ---------------------------------------------------------------------------
+
+export interface ProviderConfigurationDiagnostic {
+  provider: ProviderName;
+  label: string;
+  configured: boolean;
+  envVar: string;
+  /** Only ever exists / first 8 characters / length — never the secret. */
+  key: EnvKeySummary;
+  issue?: string;
+  models: readonly string[];
+}
+
+export function getProviderConfigurationDiagnostics(): ProviderConfigurationDiagnostic[] {
+  ensureServerEnvLoaded();
+  return (["gemini", "openai", "openrouter"] as const).map((provider) => {
+    const envVar = PROVIDER_CONFIG[provider].apiKeyEnv;
+    const key = getProviderApiKey(provider);
+    const validation = validateApiKey(key);
+    return {
+      provider,
+      label: PROVIDER_LABELS[provider],
+      configured: !!key && validation.valid,
+      envVar,
+      key: summarizeSecret(key, envVar),
+      issue: key ? validation.issue : "missing",
+      models: PROVIDER_CONFIG[provider].models,
+    };
+  });
+}
+
+/**
+ * Startup diagnostics required by the runbook: for every provider print whether
+ * it is configured, plus the safe key summary (exists / first 8 / length).
+ */
+export function logProviderConfigurationDiagnostics(
+  logger?: Logger,
+): ProviderConfigurationDiagnostic[] {
+  const diagnostics = getProviderConfigurationDiagnostics();
+
+  console.info("");
+  console.info("==================================");
+  console.info("LORD PROVIDER CONFIGURATION");
+  console.info("==================================");
+  for (const entry of diagnostics) {
+    const state = entry.configured ? "configured" : "not configured";
+    const detail = entry.key.exists
+      ? `key exists=true first8=${entry.key.first8} length=${entry.key.length}`
+      : `key exists=false (${entry.envVar} is not set)`;
+    console.info(`${entry.label}: ${state} — ${detail}`);
+    if (entry.key.exists && !entry.configured) {
+      console.warn(`  ⚠ ${entry.envVar} is present but unusable: ${entry.issue}`);
+    }
+  }
+  console.info("==================================");
+  console.info("");
+
+  logger?.info("lord_provider_configuration", {
+    providers: diagnostics.map((entry) => ({
+      provider: entry.provider,
+      configured: entry.configured,
+      envVar: entry.envVar,
+      key: entry.key,
+      issue: entry.issue,
+    })),
+    envKeys: getProviderEnvSummaries(),
+  });
+
+  return diagnostics;
 }
 
 function logDiagnosticsOnce() {
@@ -170,6 +293,40 @@ function summarizePayload(body?: BodyInit | null): Record<string, unknown> {
   }
 }
 
+// Verify the key the provider SDK actually put on the wire is byte-for-byte the
+// key currently in process.env. A mismatch means the SDK captured a stale value
+// (for example a provider instance built before the env was reloaded), which
+// presents itself as an "invalid API key" error from a perfectly valid key.
+function verifyWireKey(
+  provider: ProviderName,
+  logger: Logger,
+  headers: { authorization?: string; googleApiKey?: string },
+): { present: boolean; matchesProcessEnv: boolean; key: EnvKeySummary } {
+  const bearer = headers.authorization?.startsWith("Bearer ")
+    ? headers.authorization.slice("Bearer ".length)
+    : undefined;
+  const wireKey = headers.googleApiKey ?? bearer;
+  const envKey = getProviderApiKey(provider);
+  const envVar = PROVIDER_CONFIG[provider].apiKeyEnv;
+  const matchesProcessEnv = !!wireKey && !!envKey && wireKey === envKey;
+
+  if (wireKey && envKey && !matchesProcessEnv) {
+    logger.error("ai_provider_key_mismatch", {
+      provider,
+      envVar,
+      message: `The key sent to ${provider} differs from ${envVar} in process.env`,
+      wireKey: summarizeSecret(wireKey, "wire"),
+      envKey: summarizeSecret(envKey, envVar),
+    });
+  }
+
+  return {
+    present: !!wireKey,
+    matchesProcessEnv,
+    key: summarizeSecret(wireKey, envVar),
+  };
+}
+
 // Create a provider-aware fetch wrapper. Logs structured events
 // and throws `OpenRouterClientError` (the existing classification machinery
 // understands it). The error carries the provider name so callers can record
@@ -187,11 +344,19 @@ function makeProviderFetch(provider: ProviderName, timeoutMs: number, logger: Lo
     const xGoogKey = readHeader(init?.headers, "x-goog-api-key");
     const contentType = readHeader(init?.headers, "content-type");
 
+    const keyCheck = verifyWireKey(provider, logger, {
+      authorization: authHeader,
+      googleApiKey: xGoogKey,
+    });
+
     logger.debug("ai_provider_request", {
       provider,
       url,
       hasAuth: !!authHeader && authHeader.startsWith("Bearer "),
       hasGoogleKey: !!xGoogKey,
+      // Safe key summary only: exists / first 8 characters / length.
+      key: keyCheck.key,
+      keyMatchesProcessEnv: keyCheck.matchesProcessEnv,
       contentType,
       payload: summarizePayload(init?.body as string | undefined),
     });
@@ -229,7 +394,27 @@ function makeProviderFetch(provider: ProviderName, timeoutMs: number, logger: Lo
         statusText: response.statusText,
         requestId,
         body: bodyText,
+        key: keyCheck.key,
+        keyMatchesProcessEnv: keyCheck.matchesProcessEnv,
       });
+
+      // Auth rejections are logged explicitly (including Gemini's 400
+      // API_KEY_INVALID) so the failing key is unambiguous in the logs — with
+      // the safe summary only, never the secret itself.
+      if (
+        response.status === 401 ||
+        response.status === 403 ||
+        (response.status === 400 && isAuthFailureMessage(bodyText))
+      ) {
+        logger.error("ai_provider_auth_failed", {
+          provider,
+          envVar: PROVIDER_CONFIG[provider].apiKeyEnv,
+          status: response.status,
+          key: keyCheck.key,
+          keyMatchesProcessEnv: keyCheck.matchesProcessEnv,
+          hint: `${PROVIDER_CONFIG[provider].apiKeyEnv} was rejected by ${provider}. Fallback continues with the remaining providers.`,
+        });
+      }
 
       if (response.status === 429 || response.status === 404 || response.status >= 500) {
         logger.warn("ai_provider_recoverable_response", {
@@ -337,12 +522,18 @@ export interface LordProvidersState {
 // Lazily construct each provider only if its key is present. Missing keys are
 // graceful: the provider stays `null` and candidates for it are skipped during
 // routing, so LORD continues using whichever providers are configured.
+//
+// Keys are read through `getProviderApiKey`, which loads the env files if this
+// process has not done so yet and normalizes the value (surrounding quotes and
+// stray whitespace are stripped) so the SDK receives exactly the value that is
+// in `process.env`.
 export function createLordProviders(logger: Logger): LordProvidersState {
+  ensureServerEnvLoaded();
   logDiagnosticsOnce();
 
-  const geminiKey = process.env.GEMINI_API_KEY;
-  const openRouterKey = process.env.OPENROUTER_API_KEY;
-  const openaiKey = process.env.OPENAI_API_KEY;
+  const geminiKey = getProviderApiKey("gemini");
+  const openRouterKey = getProviderApiKey("openrouter");
+  const openaiKey = getProviderApiKey("openai");
 
   const providers: LordProviders = {
     gemini: null,
@@ -370,10 +561,20 @@ export function createLordProviders(logger: Logger): LordProvidersState {
     if (!validation.valid) {
       logger.error("ai_provider_invalid_key", {
         provider: "gemini",
+        envVar: "GEMINI_API_KEY",
         issue: validation.issue,
+        key: summarizeApiKey(geminiKey),
       });
     } else {
+      logger.info("ai_provider_sdk_configured", {
+        provider: "gemini",
+        source: "process.env.GEMINI_API_KEY",
+        key: summarizeApiKey(geminiKey),
+        sameAsProcessEnv: geminiKey === readEnvApiKey("GEMINI_API_KEY"),
+      });
       providers.gemini = createGoogleGenerativeAI({
+        // Read per request from process.env so a reloaded key takes effect
+        // without rebuilding the provider from a stale captured value.
         apiKey: geminiKey,
         fetch: makeProviderFetch("gemini", GATEWAY_CONFIG.providerTimeouts.gemini, logger),
       });
@@ -385,9 +586,17 @@ export function createLordProviders(logger: Logger): LordProvidersState {
     if (!validation.valid) {
       logger.error("ai_provider_invalid_key", {
         provider: "openrouter",
+        envVar: "OPENROUTER_API_KEY",
         issue: validation.issue,
+        key: summarizeApiKey(openRouterKey),
       });
     } else {
+      logger.info("ai_provider_sdk_configured", {
+        provider: "openrouter",
+        source: "process.env.OPENROUTER_API_KEY",
+        key: summarizeApiKey(openRouterKey),
+        sameAsProcessEnv: openRouterKey === readEnvApiKey("OPENROUTER_API_KEY"),
+      });
       providers.openrouter = createOpenAICompatible({
         name: "openrouter",
         baseURL: OPENROUTER_BASE_URL,
@@ -407,9 +616,17 @@ export function createLordProviders(logger: Logger): LordProvidersState {
     if (!validation.valid) {
       logger.error("ai_provider_invalid_key", {
         provider: "openai",
+        envVar: "OPENAI_API_KEY",
         issue: validation.issue,
+        key: summarizeApiKey(openaiKey),
       });
     } else {
+      logger.info("ai_provider_sdk_configured", {
+        provider: "openai",
+        source: "process.env.OPENAI_API_KEY",
+        key: summarizeApiKey(openaiKey),
+        sameAsProcessEnv: openaiKey === readEnvApiKey("OPENAI_API_KEY"),
+      });
       providers.openai = createOpenAI({
         apiKey: openaiKey,
         fetch: makeProviderFetch("openai", GATEWAY_CONFIG.providerTimeouts.openai, logger),
@@ -450,9 +667,9 @@ export function createOpenRouterProvider(apiKey: string, logger: Logger) {
 
 // Return the list of providers that have valid keys configured, in stable order.
 export function getConfiguredProviders(): ProviderName[] {
+  ensureServerEnvLoaded();
   return (["gemini", "openrouter", "openai"] as const).filter((p) => {
-    const key = PROVIDER_CONFIG[p].apiKeyEnv;
-    const value = process.env[key];
+    const value = getProviderApiKey(p);
     return !!value && validateApiKey(value).valid;
   });
 }
@@ -689,6 +906,15 @@ export function logStartupBanner(
     circuitBreakerEntries: infra.circuitBreaker.getAll().length,
     preferredModels,
   });
+  const imageModels = IMAGE_MODELS.map((model) => {
+    const health = infra.healthCache.get(model.provider, model.id);
+    return {
+      model: model.label,
+      id: model.id,
+      status: health?.status ?? (state.meta[model.provider].hasKey ? "ready" : "missing_api_key"),
+    };
+  });
+  infra.logger.info("lord_active_image_configuration", { imageModels });
 }
 
 // ---------------------------------------------------------------------------
@@ -759,39 +985,72 @@ function getRetryPolicy(classification: ModelErrorClassification) {
   );
 }
 
-// Tries each candidate model for `mode` in order. A candidate is validated with
-// a cheap pre-flight call; on failure its error is classified:
-//   - retryable  -> log and move to the next candidate
-//   - non-retryable -> stop immediately and re-throw the original error
-// The first candidate that passes the probe is returned so the caller can
-// either stream it or complete it. Throws only when every candidate fails (or a
-// non-retryable error is hit), so the user never sees an error unless all models
-// are down.
-export async function findFirstWorkingModel(opts: StreamWithFallbackOptions): Promise<{
-  candidate: Candidate;
-  provider: ProviderName;
-  attempts: ModelAttempt[];
-  probeMs: number;
-}> {
-  const { mode, requestId, state } = opts;
-  const infra = getGatewayInfrastructure();
-  const logger = infra.logger;
+const candidateKey = (candidate: Candidate) => `${candidate.provider}:${candidate.modelId}`;
+
+/**
+ * Error thrown when routing is exhausted. It carries which providers were
+ * actually contacted so the caller can only report "All configured models
+ * failed" when every configured provider really was attempted.
+ */
+export class AllProvidersFailedError extends Error {
+  readonly lordAttempts: ModelAttempt[];
+  readonly configuredProviders: ProviderName[];
+  readonly attemptedProviders: ProviderName[];
+  readonly notAttemptedProviders: ProviderName[];
+  readonly allProvidersAttempted: boolean;
+  readonly providerStatuses: ProviderStatus[];
+
+  constructor(
+    message: string,
+    info: {
+      attempts: ModelAttempt[];
+      configuredProviders: ProviderName[];
+      attemptedProviders: ProviderName[];
+      providerStatuses: ProviderStatus[];
+    },
+  ) {
+    super(message);
+    this.name = "AllProvidersFailedError";
+    this.lordAttempts = info.attempts;
+    this.configuredProviders = info.configuredProviders;
+    this.attemptedProviders = info.attemptedProviders;
+    this.notAttemptedProviders = info.configuredProviders.filter(
+      (p) => !info.attemptedProviders.includes(p),
+    );
+    this.allProvidersAttempted = this.notAttemptedProviders.length === 0;
+    this.providerStatuses = info.providerStatuses;
+  }
+}
+
+// Build the ordered routing plan for a request.
+//
+// The mode's own candidate order is preserved (and still sorted by dynamic
+// routing stats) so normal routing behaviour is unchanged. Two guarantees are
+// added on top:
+//   1. every configured provider is represented, by appending its remaining
+//      models after the mode list — a provider is never skipped just because
+//      the single model it contributes to this mode is unavailable;
+//   2. candidates that are currently unhealthy or circuit-broken are deferred
+//      to the end instead of being dropped, so "all providers failed" can only
+//      be reported after each provider has genuinely been contacted.
+function buildRoutingPlan(
+  opts: StreamWithFallbackOptions,
+  infra: GatewayInfrastructure,
+): { plan: Candidate[]; deferred: Set<string>; configuredProviders: ProviderName[] } {
+  const { mode, state } = opts;
   const resolvedExplicit = opts.explicitModelId ? resolveCandidate(opts.explicitModelId) : null;
-  const candidates = getModeCandidates(
+  const hasKey = (provider: ProviderName) => !!state.meta[provider]?.hasKey;
+
+  const modeCandidates = getModeCandidates(
     mode,
     resolvedExplicit ? undefined : opts.explicitModelId,
     resolvedExplicit?.provider,
     resolvedExplicit?.modelId,
-  ).filter((c) => {
-    const cbOpen = infra.circuitBreaker.isOpen(c.provider, c.modelId);
-    const healthOk = infra.healthCache.isHealthy(c.provider, c.modelId);
-    const hasKey = state.meta[c.provider]?.hasKey;
-    return !cbOpen && healthOk && hasKey;
-  });
+  ).filter((c) => hasKey(c.provider));
 
-  // Dynamic routing: sort candidates by health and performance when enabled.
+  // Dynamic routing: sort the mode's candidates by health and performance.
   if (GATEWAY_CONFIG.dynamicRoutingEnabled && !opts.explicitModelId) {
-    candidates.sort((a, b) => {
+    modeCandidates.sort((a, b) => {
       const statsA = infra.modelStats.getStats(a.provider, a.modelId);
       const statsB = infra.modelStats.getStats(b.provider, b.modelId);
       const failureRateA = statsA.requests > 0 ? statsA.failures / statsA.requests : 0;
@@ -804,6 +1063,85 @@ export async function findFirstWorkingModel(opts: StreamWithFallbackOptions): Pr
       return 0;
     });
   }
+
+  const configuredProviders = (["gemini", "openrouter", "openai"] as const).filter(hasKey);
+
+  const seen = new Set(modeCandidates.map(candidateKey));
+  const providerCompletion: Candidate[] = [];
+  for (const provider of configuredProviders) {
+    for (const modelId of PROVIDER_CONFIG[provider].models) {
+      const candidate: Candidate = { provider, modelId };
+      if (seen.has(candidateKey(candidate))) continue;
+      seen.add(candidateKey(candidate));
+      providerCompletion.push(candidate);
+    }
+  }
+
+  const ordered = [...modeCandidates, ...providerCompletion];
+  const usable: Candidate[] = [];
+  const deferredCandidates: Candidate[] = [];
+  const deferred = new Set<string>();
+
+  for (const candidate of ordered) {
+    const circuitOpen = infra.circuitBreaker.isOpen(candidate.provider, candidate.modelId);
+    const healthy = infra.healthCache.isHealthy(candidate.provider, candidate.modelId);
+    if (circuitOpen || !healthy) {
+      deferredCandidates.push(candidate);
+      deferred.add(candidateKey(candidate));
+    } else {
+      usable.push(candidate);
+    }
+  }
+
+  return { plan: [...usable, ...deferredCandidates], deferred, configuredProviders };
+}
+
+function buildProviderStatuses(
+  configuredProviders: ProviderName[],
+  attempts: Map<ProviderName, ModelAttempt[]>,
+): ProviderStatus[] {
+  return configuredProviders.map((provider) => {
+    const providerAttempts = attempts.get(provider) ?? [];
+    const label = PROVIDER_LABELS[provider];
+    if (providerAttempts.length === 0) {
+      return { provider: label, status: "unavailable" as const };
+    }
+    const last = providerAttempts[providerAttempts.length - 1];
+    if (last.reason === GATEWAY_CONFIG.errorReasonLabels.invalid_api_key) {
+      return { provider: label, status: "invalid" as const };
+    }
+    if (last.reason === GATEWAY_CONFIG.errorReasonLabels.missing_api_key) {
+      return { provider: label, status: "missing_api_key" as const };
+    }
+    if (last.reason === GATEWAY_CONFIG.errorReasonLabels.rate_limit) {
+      return { provider: label, status: "rate_limited" as const };
+    }
+    return { provider: label, status: "unavailable" as const };
+  });
+}
+
+// Tries each candidate model for `mode` in order. A candidate is validated with
+// a cheap pre-flight call; on failure its error is classified:
+//   - retryable  -> log and move to the next candidate
+//   - non-retryable -> skip the model and move to the next candidate
+//   - authentication failure -> disable that provider for the rest of this
+//     request (its remaining models cannot succeed with a rejected key) and
+//     continue with the next provider
+// The first candidate that passes the probe is returned so the caller can
+// either stream it or complete it. Throws `AllProvidersFailedError` only after
+// every configured provider has actually been attempted.
+export async function findFirstWorkingModel(opts: StreamWithFallbackOptions): Promise<{
+  candidate: Candidate;
+  provider: ProviderName;
+  attempts: ModelAttempt[];
+  probeMs: number;
+}> {
+  const { mode, requestId, state } = opts;
+  const infra = getGatewayInfrastructure();
+  const logger = infra.logger;
+  const { plan, deferred, configuredProviders } = buildRoutingPlan(opts, infra);
+  const candidates = plan;
+
   const modeLabel = LORD_MODE_LABELS[mode];
   const probeStart = performance.now();
 
@@ -836,12 +1174,42 @@ export async function findFirstWorkingModel(opts: StreamWithFallbackOptions): Pr
   logger.info("ai_mode", { mode: modeLabel });
 
   const attempts: ModelAttempt[] = [];
-  const configuredProviders = getConfiguredProviders();
+  const attemptsByProvider = new Map<ProviderName, ModelAttempt[]>();
+  const attemptedProviders: ProviderName[] = [];
+  // Providers whose credentials were rejected during THIS request. Their
+  // remaining models cannot succeed with a rejected key, so they are skipped
+  // immediately and routing continues with the next provider.
+  const authDisabledProviders = new Set<ProviderName>();
+
+  const recordAttempt = (provider: ProviderName, attempt: ModelAttempt) => {
+    attempts.push(attempt);
+    const list = attemptsByProvider.get(provider) ?? [];
+    list.push(attempt);
+    attemptsByProvider.set(provider, list);
+  };
+  const markAttempted = (provider: ProviderName) => {
+    if (!attemptedProviders.includes(provider)) attemptedProviders.push(provider);
+  };
 
   for (let i = 0; i < candidates.length; i++) {
     const candidate = candidates[i];
     const { provider, modelId } = candidate;
     const attemptNum = i + 1;
+
+    // Provider already failed authentication in this request: skip the rest of
+    // its models straight away (task 5 / task 6) and continue with the next
+    // provider instead of burning another round trip on a rejected key.
+    if (authDisabledProviders.has(provider)) {
+      logger.info("ai_provider_skipped_auth_disabled", {
+        requestId,
+        mode,
+        provider,
+        model: modelId,
+        reason: "Provider disabled for this request after an authentication failure",
+      });
+      continue;
+    }
+
     logger.info("Attempt " + attemptNum + ":\n" + provider + ":" + modelId, {
       requestId,
       mode,
@@ -855,21 +1223,25 @@ export async function findFirstWorkingModel(opts: StreamWithFallbackOptions): Pr
       attempt: attemptNum,
       provider,
       model: modelId,
+      // Deferred candidates are the ones a health/circuit check had previously
+      // parked; they are still attempted so no provider is silently skipped.
+      deferred: deferred.has(candidateKey(candidate)),
     });
 
     // Skip candidates whose provider has no valid key configured.
     if (!state.meta[provider]?.hasKey) {
-      const attempt: ModelAttempt = {
+      recordAttempt(provider, {
         model: modelId,
         status: 0,
         reason: GATEWAY_CONFIG.errorReasonLabels.missing_api_key,
         retryable: false,
         providerMessage: `Provider "${provider}" has no valid API key`,
         timestamp: Date.now(),
-      };
-      attempts.push(attempt);
+      });
       continue;
     }
+
+    markAttempted(provider);
 
     // Exponential retry for transient probe failures: a provider may be
     // flapping, so we retry a couple of times before giving up on it.
@@ -907,7 +1279,7 @@ export async function findFirstWorkingModel(opts: StreamWithFallbackOptions): Pr
           requestId: classification.requestId,
           timestamp: Date.now(),
         };
-        attempts.push(attempt);
+        recordAttempt(provider, attempt);
         logger.info(
           "Failed:\n" +
             attempt.reason +
@@ -946,9 +1318,28 @@ export async function findFirstWorkingModel(opts: StreamWithFallbackOptions): Pr
           reason: attempt.reason,
         });
 
+        // Authentication failure (401/403, or Gemini's 400 API_KEY_INVALID):
+        // the key itself was rejected, so every other model of this provider
+        // would fail the same way. Disable the provider for the remainder of
+        // this request and continue with the next configured provider.
+        if (isAuthFailure(classification)) {
+          authDisabledProviders.add(errProvider);
+          logger.error("ai_provider_auth_disabled", {
+            requestId,
+            mode,
+            provider: errProvider,
+            envVar: PROVIDER_CONFIG[errProvider].apiKeyEnv,
+            status: classification.status,
+            reason: attempt.reason,
+            providerMessage: classification.providerMessage,
+            message: `${PROVIDER_LABELS[errProvider]} authentication failed — disabled for this request, continuing with the remaining providers.`,
+          });
+          break;
+        }
+
         if (!classification.retryable) {
-          // Non-retryable (e.g. invalid key) for THIS provider — move on to the
-          // next candidate rather than aborting the whole request.
+          // Non-retryable (e.g. unsupported request) for THIS model — move on
+          // to the next candidate rather than aborting the whole request.
           logger.warn("Skipping invalid model " + modelId + ": " + classification.providerMessage, {
             requestId,
             provider,
@@ -1011,16 +1402,36 @@ export async function findFirstWorkingModel(opts: StreamWithFallbackOptions): Pr
   // next request starts fresh instead of blindly streaming to a dead model.
   invalidateCachedCandidate(mode);
   const probeMs = Math.round(performance.now() - probeStart);
+  const notAttemptedProviders = configuredProviders.filter((p) => !attemptedProviders.includes(p));
+  const providerStatuses = buildProviderStatuses(configuredProviders, attemptsByProvider);
+
   logger.error("lord_mode_exhausted", {
     requestId,
     mode,
     configuredProviders,
+    attemptedProviders,
+    notAttemptedProviders,
+    authDisabledProviders: [...authDisabledProviders],
+    allProvidersAttempted: notAttemptedProviders.length === 0,
+    providerStatuses,
     attempts,
     probeMs,
   });
-  const exhausted = new Error(`All models failed for mode "${mode}".`);
-  (exhausted as unknown as { lordAttempts: ModelAttempt[] }).lordAttempts = attempts;
-  throw exhausted;
+
+  // The message distinguishes a genuine exhaustion (every configured provider
+  // was contacted) from an early exit — the caller must not report
+  // "All configured models failed" unless the former is true.
+  const message =
+    notAttemptedProviders.length === 0
+      ? `All configured providers failed for mode "${mode}" (attempted: ${attemptedProviders.join(", ") || "none"}).`
+      : `Routing for mode "${mode}" ended before every configured provider was attempted (attempted: ${attemptedProviders.join(", ") || "none"}; not attempted: ${notAttemptedProviders.join(", ")}).`;
+
+  throw new AllProvidersFailedError(message, {
+    attempts,
+    configuredProviders,
+    attemptedProviders,
+    providerStatuses,
+  });
 }
 
 export async function streamWithFallback(
@@ -1331,12 +1742,21 @@ export async function testOpenRouterConnection(opts: {
   }
 }
 
-// Clear all circuit-breaker and health-cache state. Intended for tests and
-// hot-reload safety so a previous process' failure counts are not inherited.
+// Clear the per-mode preferred-candidate cache. Without this a previously
+// cached candidate keeps being returned without any probe, which can hide a
+// provider (or a fixed API key) from routing until the TTL expires.
+export function resetProbeCache(): void {
+  probeCache.clear();
+}
+
+// Clear all circuit-breaker, health-cache and probe-cache state. Intended for
+// tests and hot-reload safety so a previous process' failure counts and
+// preferred models are not inherited.
 export function resetCircuitBreakers(): void {
   const infra = getGatewayInfrastructure();
   infra.circuitBreaker.resetAll();
   infra.healthCache.clear();
+  resetProbeCache();
   resetGatewayInfrastructure();
 }
 

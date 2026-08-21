@@ -1,21 +1,23 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
-  createLordProviders,
   getGatewayInfrastructure,
+  getProviderConfigurationDiagnostics,
+  logProviderConfigurationDiagnostics,
   resetGatewayInfrastructure,
 } from "@/lib/ai-gateway.server";
 import { GATEWAY_CONFIG } from "@/lib/gateway-config";
 import { createLogger } from "@/lib/gateway-logger";
 import { PROVIDER_CONFIG } from "@/lib/lord-config";
 import { MODEL_REGISTRY } from "@/lib/model-registry";
+import { reloadServerEnv } from "@/lib/env.server";
+
+const logger = createLogger(GATEWAY_CONFIG);
 
 export const Route = createFileRoute("/api/admin/gateway")({
   server: {
     handlers: {
       GET: async () => {
-        const logger = createLogger(GATEWAY_CONFIG);
         const infra = getGatewayInfrastructure(logger);
-
         const providers = ["gemini", "openrouter", "openai"] as const;
         const providerHealth: Record<
           string,
@@ -55,8 +57,11 @@ export const Route = createFileRoute("/api/admin/gateway")({
         const circuitBreakers = infra.circuitBreaker.getAll();
         const allStats = infra.modelStats.getAllStats();
 
+        const providerDiagnostics = getProviderConfigurationDiagnostics();
+
         return Response.json({
           timestamp: Date.now(),
+          providerConfiguration: providerDiagnostics,
           providers: providerHealth,
           disabledModels: disabledModels.map((m) => ({
             provider: m.provider,
@@ -84,9 +89,28 @@ export const Route = createFileRoute("/api/admin/gateway")({
           registry: MODEL_REGISTRY.map((m) => ({ id: m.id, label: m.label, provider: m.provider })),
         });
       },
-      POST: async () => {
-        resetGatewayInfrastructure();
-        return Response.json({ ok: true, message: "Gateway state reset" });
+      POST: async ({ request }) => {
+        const action =
+          (request.headers.get("content-type")?.includes("application/json")
+            ? (await request.json().catch(() => ({})))?.action
+            : new URL(request.url).searchParams.get("action")) ?? "reset";
+
+        if (action === "reload-env") {
+          reloadServerEnv();
+          const diagnostics = logProviderConfigurationDiagnostics(logger);
+          return Response.json({
+            ok: true,
+            message: "Server environment reloaded from .env",
+            providerConfiguration: diagnostics,
+          });
+        }
+
+        if (action === "reset") {
+          resetGatewayInfrastructure();
+          return Response.json({ ok: true, message: "Gateway state reset" });
+        }
+
+        return Response.json({ ok: false, message: `Unknown action: ${action}` }, { status: 400 });
       },
     },
   },

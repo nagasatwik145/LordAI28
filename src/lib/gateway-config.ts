@@ -77,6 +77,50 @@ export const ERROR_REASON_LABELS: Record<string, string> = {
   missing_api_key: "Missing API key",
 };
 
+// ---------------------------------------------------------------------------
+// Image pipeline
+// ---------------------------------------------------------------------------
+// Image generation has a very different failure profile from chat: a single
+// request is slow and billable, providers validate every parameter against a
+// per-model schema, and a rejected parameter must be repaired instead of
+// retried blindly. These values are intentionally separate from the chat
+// gateway knobs so tuning one can never regress the other.
+export const IMAGE_CONFIG = {
+  /** Per-request provider timeout. Image models are much slower than chat. */
+  providerTimeoutMs: 90_000,
+  /** Timeout for the (free) model-catalog request. */
+  catalogTimeoutMs: 10_000,
+  /** How long the model catalog is trusted before it is re-fetched. */
+  catalogTtlMs: 30 * 60_000,
+  /** Attempts per model, including payload repairs and rate-limit retries. */
+  maxAttemptsPerModel: 3,
+  /** Hard ceiling on provider calls for one image, across all fallback models. */
+  maxTotalAttempts: 10,
+  /** How many times a rejected payload may be repaired for the same model. */
+  maxPayloadRepairs: 2,
+  /** Overall wall-clock budget for one image, including fallbacks. */
+  requestDeadlineMs: 150_000,
+  /** Images generated concurrently for a single request. */
+  maxParallelImages: 4,
+  /** Health-cache TTLs for image models, by provider HTTP status. */
+  healthTtlByStatus: {
+    400: 10 * 60_000,
+    401: 60 * 60_000,
+    402: 60_000,
+    403: 30 * 60_000,
+    404: 6 * 60 * 60_000,
+    408: 30_000,
+    409: 15_000,
+    422: 10 * 60_000,
+    429: 30_000,
+    500: 30_000,
+    502: 30_000,
+    503: 60_000,
+    504: 30_000,
+  } as Record<number, number>,
+  healthTtlDefaultMs: 30_000,
+} as const;
+
 export type GatewayConfig = {
   probeTimeoutMs: number;
   probeMaxOutputTokens: number;

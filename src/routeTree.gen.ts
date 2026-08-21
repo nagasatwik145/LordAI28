@@ -19,6 +19,7 @@ import { Route as ApiTitleRouteImport } from './routes/api/title'
 import { Route as ApiSharesRouteImport } from './routes/api/shares'
 import { Route as ApiSearchRouteImport } from './routes/api/search'
 import { Route as ApiOpenrouterTestRouteImport } from './routes/api/openrouter-test'
+import { Route as ApiImagesRouteImport } from './routes/api/images'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthenticatedVoiceRouteImport } from './routes/_authenticated/voice'
@@ -33,6 +34,7 @@ import { Route as AuthenticatedPracticeRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedPlanRouteImport } from './routes/_authenticated/plan'
 import { Route as AuthenticatedMemoryRouteImport } from './routes/_authenticated/memory'
 import { Route as AuthenticatedLearnRouteImport } from './routes/_authenticated/learn'
+import { Route as AuthenticatedImagesRouteImport } from './routes/_authenticated/images'
 import { Route as AuthenticatedFeedRouteImport } from './routes/_authenticated/feed'
 import { Route as AuthenticatedDocumentsRouteImport } from './routes/_authenticated/documents'
 import { Route as AuthenticatedChatRouteImport } from './routes/_authenticated/chat'
@@ -133,6 +135,11 @@ const ApiOpenrouterTestRoute = ApiOpenrouterTestRouteImport.update({
   path: '/api/openrouter-test',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiImagesRoute = ApiImagesRouteImport.update({
+  id: '/api/images',
+  path: '/api/images',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiHealthRoute = ApiHealthRouteImport.update({
   id: '/api/health',
   path: '/api/health',
@@ -202,6 +209,11 @@ const AuthenticatedMemoryRoute = AuthenticatedMemoryRouteImport.update({
 const AuthenticatedLearnRoute = AuthenticatedLearnRouteImport.update({
   id: '/learn',
   path: '/learn',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedImagesRoute = AuthenticatedImagesRouteImport.update({
+  id: '/images',
+  path: '/images',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedFeedRoute = AuthenticatedFeedRouteImport.update({
@@ -477,6 +489,7 @@ export interface FileRoutesByFullPath {
   '/chat': typeof AuthenticatedChatRoute
   '/documents': typeof AuthenticatedDocumentsRoute
   '/feed': typeof AuthenticatedFeedRoute
+  '/images': typeof AuthenticatedImagesRoute
   '/learn': typeof AuthenticatedLearnRoute
   '/memory': typeof AuthenticatedMemoryRoute
   '/plan': typeof AuthenticatedPlanRoute
@@ -491,6 +504,7 @@ export interface FileRoutesByFullPath {
   '/voice': typeof AuthenticatedVoiceRoute
   '/api/chat': typeof ApiChatRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/images': typeof ApiImagesRoute
   '/api/openrouter-test': typeof ApiOpenrouterTestRoute
   '/api/search': typeof ApiSearchRoute
   '/api/shares': typeof ApiSharesRouteWithChildren
@@ -552,6 +566,7 @@ export interface FileRoutesByTo {
   '/chat': typeof AuthenticatedChatRoute
   '/documents': typeof AuthenticatedDocumentsRoute
   '/feed': typeof AuthenticatedFeedRoute
+  '/images': typeof AuthenticatedImagesRoute
   '/learn': typeof AuthenticatedLearnRoute
   '/memory': typeof AuthenticatedMemoryRoute
   '/plan': typeof AuthenticatedPlanRoute
@@ -566,6 +581,7 @@ export interface FileRoutesByTo {
   '/voice': typeof AuthenticatedVoiceRoute
   '/api/chat': typeof ApiChatRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/images': typeof ApiImagesRoute
   '/api/openrouter-test': typeof ApiOpenrouterTestRoute
   '/api/search': typeof ApiSearchRoute
   '/api/shares': typeof ApiSharesRouteWithChildren
@@ -629,6 +645,7 @@ export interface FileRoutesById {
   '/_authenticated/chat': typeof AuthenticatedChatRoute
   '/_authenticated/documents': typeof AuthenticatedDocumentsRoute
   '/_authenticated/feed': typeof AuthenticatedFeedRoute
+  '/_authenticated/images': typeof AuthenticatedImagesRoute
   '/_authenticated/learn': typeof AuthenticatedLearnRoute
   '/_authenticated/memory': typeof AuthenticatedMemoryRoute
   '/_authenticated/plan': typeof AuthenticatedPlanRoute
@@ -643,6 +660,7 @@ export interface FileRoutesById {
   '/_authenticated/voice': typeof AuthenticatedVoiceRoute
   '/api/chat': typeof ApiChatRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/images': typeof ApiImagesRoute
   '/api/openrouter-test': typeof ApiOpenrouterTestRoute
   '/api/search': typeof ApiSearchRoute
   '/api/shares': typeof ApiSharesRouteWithChildren
@@ -706,6 +724,7 @@ export interface FileRouteTypes {
     | '/chat'
     | '/documents'
     | '/feed'
+    | '/images'
     | '/learn'
     | '/memory'
     | '/plan'
@@ -720,6 +739,7 @@ export interface FileRouteTypes {
     | '/voice'
     | '/api/chat'
     | '/api/health'
+    | '/api/images'
     | '/api/openrouter-test'
     | '/api/search'
     | '/api/shares'
@@ -781,6 +801,7 @@ export interface FileRouteTypes {
     | '/chat'
     | '/documents'
     | '/feed'
+    | '/images'
     | '/learn'
     | '/memory'
     | '/plan'
@@ -795,6 +816,7 @@ export interface FileRouteTypes {
     | '/voice'
     | '/api/chat'
     | '/api/health'
+    | '/api/images'
     | '/api/openrouter-test'
     | '/api/search'
     | '/api/shares'
@@ -857,6 +879,7 @@ export interface FileRouteTypes {
     | '/_authenticated/chat'
     | '/_authenticated/documents'
     | '/_authenticated/feed'
+    | '/_authenticated/images'
     | '/_authenticated/learn'
     | '/_authenticated/memory'
     | '/_authenticated/plan'
@@ -871,6 +894,7 @@ export interface FileRouteTypes {
     | '/_authenticated/voice'
     | '/api/chat'
     | '/api/health'
+    | '/api/images'
     | '/api/openrouter-test'
     | '/api/search'
     | '/api/shares'
@@ -931,6 +955,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ApiChatRoute: typeof ApiChatRoute
   ApiHealthRoute: typeof ApiHealthRoute
+  ApiImagesRoute: typeof ApiImagesRoute
   ApiOpenrouterTestRoute: typeof ApiOpenrouterTestRoute
   ApiSearchRoute: typeof ApiSearchRoute
   ApiSharesRoute: typeof ApiSharesRouteWithChildren
@@ -1042,6 +1067,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiOpenrouterTestRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/images': {
+      id: '/api/images'
+      path: '/api/images'
+      fullPath: '/api/images'
+      preLoaderRoute: typeof ApiImagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/health': {
       id: '/api/health'
       path: '/api/health'
@@ -1138,6 +1170,13 @@ declare module '@tanstack/react-router' {
       path: '/learn'
       fullPath: '/learn'
       preLoaderRoute: typeof AuthenticatedLearnRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/images': {
+      id: '/_authenticated/images'
+      path: '/images'
+      fullPath: '/images'
+      preLoaderRoute: typeof AuthenticatedImagesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/feed': {
@@ -1499,6 +1538,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedChatRoute: typeof AuthenticatedChatRoute
   AuthenticatedDocumentsRoute: typeof AuthenticatedDocumentsRoute
   AuthenticatedFeedRoute: typeof AuthenticatedFeedRoute
+  AuthenticatedImagesRoute: typeof AuthenticatedImagesRoute
   AuthenticatedLearnRoute: typeof AuthenticatedLearnRoute
   AuthenticatedMemoryRoute: typeof AuthenticatedMemoryRoute
   AuthenticatedPlanRoute: typeof AuthenticatedPlanRoute
@@ -1526,6 +1566,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedChatRoute: AuthenticatedChatRoute,
   AuthenticatedDocumentsRoute: AuthenticatedDocumentsRoute,
   AuthenticatedFeedRoute: AuthenticatedFeedRoute,
+  AuthenticatedImagesRoute: AuthenticatedImagesRoute,
   AuthenticatedLearnRoute: AuthenticatedLearnRoute,
   AuthenticatedMemoryRoute: AuthenticatedMemoryRoute,
   AuthenticatedPlanRoute: AuthenticatedPlanRoute,
@@ -1590,6 +1631,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ApiChatRoute: ApiChatRoute,
   ApiHealthRoute: ApiHealthRoute,
+  ApiImagesRoute: ApiImagesRoute,
   ApiOpenrouterTestRoute: ApiOpenrouterTestRoute,
   ApiSearchRoute: ApiSearchRoute,
   ApiSharesRoute: ApiSharesRouteWithChildren,
