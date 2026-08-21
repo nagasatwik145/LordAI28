@@ -52,6 +52,7 @@ const PROVIDER_LABELS: Record<ProviderName, string> = {
   gemini: "Gemini",
   openrouter: "OpenRouter",
   openai: "OpenAI",
+  cloudflare: "Cloudflare",
 };
 
 // Read a provider key from process.env, normalized exactly as it is handed to
@@ -477,6 +478,11 @@ const PROVIDER_PARAM_LIMITS: Record<ProviderName, ProviderParamLimits> = {
     defaultTemperature: 0.7,
     maxTemperature: 2.0,
   },
+  cloudflare: {
+    minOutputTokens: 1,
+    defaultTemperature: 0.7,
+    maxTemperature: 2.0,
+  },
 };
 
 export function normalizeProviderParams(
@@ -506,6 +512,7 @@ interface LordProviders {
   gemini: ReturnType<typeof createGoogleGenerativeAI> | null;
   openrouter: ReturnType<typeof createOpenAICompatible> | null;
   openai: ReturnType<typeof createOpenAI> | null;
+  cloudflare: null;
 }
 
 interface LordProviderMeta {
@@ -538,6 +545,7 @@ export function createLordProviders(logger: Logger): LordProvidersState {
     gemini: null,
     openrouter: null,
     openai: null,
+    cloudflare: null,
   };
 
   const meta: Record<ProviderName, LordProviderMeta> = {
@@ -552,6 +560,10 @@ export function createLordProviders(logger: Logger): LordProvidersState {
     openai: {
       timeoutMs: GATEWAY_CONFIG.providerTimeouts.openai,
       hasKey: !!openaiKey && validateApiKey(openaiKey).valid,
+    },
+    cloudflare: {
+      timeoutMs: GATEWAY_CONFIG.providerTimeouts.openrouter,
+      hasKey: false,
     },
   };
 
@@ -867,8 +879,18 @@ export function logStartupBanner(
   infra: GatewayInfrastructure,
   configuredProviders: ProviderName[],
 ) {
-  const enabledModels: Record<ProviderName, string[]> = { gemini: [], openrouter: [], openai: [] };
-  const disabledModels: Record<ProviderName, string[]> = { gemini: [], openrouter: [], openai: [] };
+  const enabledModels: Record<ProviderName, string[]> = {
+    gemini: [],
+    openrouter: [],
+    openai: [],
+    cloudflare: [],
+  };
+  const disabledModels: Record<ProviderName, string[]> = {
+    gemini: [],
+    openrouter: [],
+    openai: [],
+    cloudflare: [],
+  };
 
   for (const provider of configuredProviders) {
     const models = PROVIDER_CONFIG[provider].models;

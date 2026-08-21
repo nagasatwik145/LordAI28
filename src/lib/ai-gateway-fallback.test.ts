@@ -48,21 +48,27 @@ function authError(status: number, body: string) {
  * Every model call is recorded so a test can assert exactly which providers
  * were attempted, in order.
  */
-function makeHarness(behaviour: Record<ProviderName, "ok" | Error>) {
+function makeHarness(behaviour: Partial<Record<ProviderName, "ok" | Error>>) {
   const calls: Array<{ provider: ProviderName; modelId: string }> = [];
 
   const state: LordProvidersState = {
-    providers: { gemini: {} as never, openrouter: {} as never, openai: {} as never },
+    providers: {
+      gemini: {} as never,
+      openrouter: {} as never,
+      openai: {} as never,
+      cloudflare: null,
+    },
     meta: {
       gemini: { timeoutMs: 5_000, hasKey: true },
       openrouter: { timeoutMs: 5_000, hasKey: true },
       openai: { timeoutMs: 5_000, hasKey: true },
+      cloudflare: { timeoutMs: 5_000, hasKey: false },
     },
   };
 
   const gateway = (candidate: Candidate) => {
     calls.push({ provider: candidate.provider, modelId: candidate.modelId });
-    const outcome = behaviour[candidate.provider];
+    const outcome = behaviour[candidate.provider] ?? "ok";
     if (outcome !== "ok") {
       return new MockLanguageModelV3({
         doGenerate: async () => {
